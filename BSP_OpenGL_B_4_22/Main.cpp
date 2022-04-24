@@ -4,13 +4,15 @@
 
 using namespace std;
 
+void RenderCompactProfile();
+
 int main()
 {
     glfwInit();
     // State setting function : GLFW
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 
     GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
     if (window == NULL)
@@ -30,8 +32,8 @@ int main()
 
     // TODO: Revisit once triangle is drawn
     glViewport(0, 0, 800, 600);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
+    //glEnable(GL_CULL_FACE);
+    //glCullFace(GL_BACK);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Alpha Blend
@@ -40,10 +42,19 @@ int main()
 
     float vertices[] = {
         // position             // color
-        -0.5f, -0.5f, 0.0f,     0.0f, 1.0f, 0.0f,
-         0.5f, -0.5f, 0.0f,     1.0f, 0.0f, 0.0f,
-         0.0f, 0.5f, 0.0f,      0.0f, 0.0f, 1.0f
+        -0.5f, -0.5f, 0.0f,     0.0f, 0.0f, 1.0f,       //2
+        -0.5f, 0.5f, 0.0f,      0.0f, 1.0f, 0.0f,       //1
+         0.5f, -0.5f, 0.0f,     0.0f, 0.0f, 1.0f,       //3
+         0.5f, 0.5f, 0.0f,      0.0f, 1.0f, 0.0f        //4
+
     }; // float = 4 bytes means 4*9 = 36 bytes // 4*12 = 48 bytes
+
+    // Cube = 6 size = 6 * 2 triangles = 12 
+    // Case 1: 2 triangles = 4 bytes * 3 floats * 6 vertex = 72 bytes * 6 sides = 432 bytes
+    // Case 2: 2 triangles
+        // 1. 4 bytes * 3 floats * 8 vertex = 96 bytes
+        // 2. 4 bytes * 3 ints * 2 triangles * 6 sides =  144 bytes 
+        // final = 96 + 144 = 240 bytes
 
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
@@ -69,18 +80,23 @@ int main()
     }
     glBindVertexArray(0);
 
-
     const char* VertexShaderSource = 
         "#version 330 core\n"
-        "layout(location = 0) in vec3 aPos;\n"
-        "layout(location = 1) in vec3 Color;\n"
+        "layout(location = 0) in vec3 aPosition;\n"
+        "layout(location = 1) in vec3 aColor;\n"
 
         "out vec3 outColor;\n"
 
+        "float Offset = 0.2;\n"
+        "vec3 vOffset = vec3(0.2, 0.0, 0.2);\n"
+
+        "vec3 vScale = vec3(2.0, 2.0, 0.0);\n"
+
         "void main()\n"
         "{\n"
-        "    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-        "    outColor = Color;\n"
+        "    vec3 newPos = aPosition;\n"
+        "    gl_Position = vec4(newPos.x, newPos.y, newPos.z, 1.0);\n"
+        "    outColor = aColor;\n"
         "}\n";
 
     unsigned int vertexShader;
@@ -141,11 +157,9 @@ int main()
         // State Using function
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         // Double buffering 
         glfwSwapBuffers(window);
@@ -160,21 +174,19 @@ void RenderCompactProfile()
 {
     // Red Quad
     glBegin(GL_TRIANGLE_STRIP);
-    glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
-    glVertex3f(0.0f, 0.5f, 0.10f);  // 0
-    glColor4f(1.0f, 1.0f, 0.0f, 1.0f);
-    glVertex3f(0.0f, 0.0f, 0.10f);  // 1
-    glVertex3f(0.5f, 0.5f, 0.10f);  // 3
-    glVertex3f(0.5f, 0.0f, 0.10f);  // 2
-
+///glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
+        glVertex3f(0.0f, 0.5f, 0.10f);  // 0
+  //      glColor4f(1.0f, 1.0f, 0.0f, 1.0f);
+        glVertex3f(0.0f, 0.0f, 0.10f);  // 1
+        glVertex3f(0.5f, 0.5f, 0.10f);  // 3
+        glVertex3f(0.5f, 0.0f, 0.10f);  // 2
     glEnd();
 
     // Blue
     glBegin(GL_TRIANGLES);
-    glColor4f(1.0f, 1.0f, 1.0f, 0.5f);
-
-    glVertex3f(-0.5f, 0.1f, 0.05f);
-    glVertex3f(0.0f, -0.5f, 0.05f);
-    glVertex3f(0.5f, 0.1f, 0.05f);
+        glColor4f(1.0f, 1.0f, 1.0f, 0.5f);
+        glVertex3f(-0.5f, 0.1f, 0.05f);
+        glVertex3f(0.0f, -0.5f, 0.05f);
+        glVertex3f(0.5f, 0.1f, 0.05f);
     glEnd();
 }
