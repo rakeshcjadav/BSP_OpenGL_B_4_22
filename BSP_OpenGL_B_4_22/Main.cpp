@@ -30,6 +30,8 @@ int main()
         return -1;
     }
 
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
     // TODO: Revisit once triangle is drawn
     glViewport(0, 0, 800, 600);
     //glEnable(GL_CULL_FACE);
@@ -42,25 +44,26 @@ int main()
 
     float vertices[] = {
         // position             // color
-        -0.5f, -0.5f, 0.0f,     0.0f, 0.0f, 1.0f,       //2
-        -0.5f, 0.5f, 0.0f,      0.0f, 1.0f, 0.0f,       //1
-         0.5f, -0.5f, 0.0f,     0.0f, 0.0f, 1.0f,       //3
-         0.5f, 0.5f, 0.0f,      0.0f, 1.0f, 0.0f        //4
+        -0.5f, -0.5f, 0.0f,     0.0f, 0.0f, 1.0f,       // top left
+        -0.5f, 0.5f, 0.0f,      0.0f, 1.0f, 0.0f,       // bottom left
+         0.5f, -0.5f, 0.0f,     0.0f, 0.0f, 1.0f,       // bottom right
+         0.5f, 0.5f, 0.0f,      0.0f, 1.0f, 0.0f,       // top right
 
-    }; // float = 4 bytes means 4*9 = 36 bytes // 4*12 = 48 bytes
+         -0.5f, 1.0f, 0.0f,      1.0f, 0.0f, 0.0f,        // top top right
+          0.5f, 1.0f, 0.0f,      1.0f, 0.0f, 0.0f         // top top left
+    };
 
-    // Cube = 6 size = 6 * 2 triangles = 12 
-    // Case 1: 2 triangles = 4 bytes * 3 floats * 6 vertex = 72 bytes * 6 sides = 432 bytes
-    // Case 2: 2 triangles
-        // 1. 4 bytes * 3 floats * 8 vertex = 96 bytes
-        // 2. 4 bytes * 3 ints * 2 triangles * 6 sides =  144 bytes 
-        // final = 96 + 144 = 240 bytes
+    unsigned int indices[] = {
+        0, 2, 1, 3, 4, 5
+        
+    };
 
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
     {
         // Creating Vertex Buffer Object
+        int y = sizeof(vertices);
         unsigned int VBO;
         glGenBuffers(1, &VBO);
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -76,7 +79,14 @@ int main()
         // location 2, read 3 GL_FLOAT and jump(stride) 4 * sizeof(float) and offset is 1
         // glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(1 * sizeof(float)));
         // glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        //glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        int x = sizeof(indices);
+        unsigned int EBO;
+        glGenBuffers(1, &EBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+        //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
     glBindVertexArray(0);
 
@@ -159,7 +169,9 @@ int main()
 
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+        //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);      // If you just VBOs
+        glDrawElements(GL_TRIANGLE_STRIP, sizeof(indices)/sizeof(unsigned int), GL_UNSIGNED_INT, 0); // If you have EBOs defined
 
         // Double buffering 
         glfwSwapBuffers(window);
