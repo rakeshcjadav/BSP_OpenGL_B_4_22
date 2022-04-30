@@ -24,6 +24,9 @@
     <ClCompile Include="glad\glad.c">
       <Filter>GLAD</Filter>
     </ClCompile>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="glad\glad.h">
@@ -31,6 +34,9 @@
     </ClInclude>
     <ClInclude Include="glad\khrplatform.h">
       <Filter>GLAD</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
