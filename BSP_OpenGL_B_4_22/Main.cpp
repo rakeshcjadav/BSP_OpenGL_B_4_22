@@ -30,7 +30,7 @@ int main()
         return -1;
     }
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // TODO: Revisit once triangle is drawn
     glViewport(0, 0, 800, 600);
@@ -44,18 +44,17 @@ int main()
 
     float vertices[] = {
         // position             // color
-        -0.5f, -0.5f, 0.0f,     0.0f, 0.0f, 1.0f,       // top left
+        -0.5f, -0.5f, 0.0f,     0.0f, 1.0f, 0.0f,       // top left
         -0.5f, 0.5f, 0.0f,      0.0f, 1.0f, 0.0f,       // bottom left
-         0.5f, -0.5f, 0.0f,     0.0f, 0.0f, 1.0f,       // bottom right
+         0.5f, -0.5f, 0.0f,     0.0f, 1.0f, 0.0f,       // bottom right
          0.5f, 0.5f, 0.0f,      0.0f, 1.0f, 0.0f,       // top right
 
-         -0.5f, 1.0f, 0.0f,      1.0f, 0.0f, 0.0f,        // top top right
-          0.5f, 1.0f, 0.0f,      1.0f, 0.0f, 0.0f         // top top left
+         -0.5f, 1.0f, 0.0f,      0.0f, 1.0f, 0.0f,        // top top right
+          0.5f, 1.0f, 0.0f,      0.0f, 1.0f, 0.0f         // top top left
     };
 
     unsigned int indices[] = {
         0, 2, 1, 3, 4, 5
-        
     };
 
     unsigned int VAO;
@@ -95,7 +94,13 @@ int main()
         "layout(location = 0) in vec3 aPosition;\n"
         "layout(location = 1) in vec3 aColor;\n"
 
-        "out vec3 outColor;\n"
+        "//out vec3 outColor;\n"
+
+        "uniform float uSomething;\n"
+
+        "//uniform vec3 uColor;\n"
+
+        "uniform vec3 uColors[3];\n"
 
         "float Offset = 0.2;\n"
         "vec3 vOffset = vec3(0.2, 0.0, 0.2);\n"
@@ -104,10 +109,14 @@ int main()
 
         "void main()\n"
         "{\n"
-        "    vec3 newPos = aPosition;\n"
-        "    gl_Position = vec4(newPos.x, newPos.y, newPos.z, 1.0);\n"
-        "    outColor = aColor;\n"
+        "    vec3 newPos = aPosition * vec3(uSomething) + vec3(uSomething, 0.0, 0.0);\n"
+        "    gl_Position = vec4(newPos.xyz, 1.0);\n"
+        "    //outColor = uColor;\n"
         "}\n";
+
+    //=> vecn => .x, .y, .z, .w => Position
+    //=> vecn => .r, .g, .b, .a => Color
+    //=> vecn => .s, .t, .p, .q => Texture Coordinate
 
     unsigned int vertexShader;
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -126,11 +135,13 @@ int main()
         "#version 330 core\n"
         "out vec4 FragColor;\n"
 
-        "in vec3 outColor;\n"
+        "//in vec3 outColor;\n"
+
+        "uniform vec3 uColor;\n"
 
         "void main()\n"
         "{\n"
-        "    FragColor = vec4(outColor.r, outColor.g, outColor.b, 1.0f);\n"
+        "    FragColor = vec4(uColor, 1.0f);\n"
         "}\n";
 
     unsigned int fragmentShader;
@@ -159,6 +170,14 @@ int main()
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
+    glUseProgram(shaderProgram);
+
+    int somethingLocation = glGetUniformLocation(shaderProgram, "uSomething");
+    glUniform1f(somethingLocation, 0.0f);
+
+    int colorLocation = glGetUniformLocation(shaderProgram, "uColor");
+    glUniform3f(colorLocation, 0.0f, 0.0f, 1.0f);
+
 
     while (!glfwWindowShouldClose(window))
     {
@@ -167,7 +186,19 @@ int main()
         // State Using function
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        float timeValue = glfwGetTime();
+        float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
+
         glUseProgram(shaderProgram);
+        //int colorLocation = glGetUniformLocation(shaderProgram, "uColor");
+        glUniform3f(colorLocation, 0.0f, greenValue, 1.0f);
+
+        //float color[9] = {0.0f, greenValue, 1.0f, 0.0f, greenValue, 1.0f , 0.0f, greenValue, 1.0f };
+        //glUniform3fv(colorLocation, 3, color);
+
+        //int somethingLocation = glGetUniformLocation(shaderProgram, "uSomething");
+        glUniform1f(somethingLocation, greenValue);
+
         glBindVertexArray(VAO);
 
         //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);      // If you just VBOs
@@ -202,3 +233,27 @@ void RenderCompactProfile()
         glVertex3f(0.5f, 0.1f, 0.05f);
     glEnd();
 }
+
+// E.g.
+// vec2 someVec = vec2(1.0, 2.0);
+// Case: 1
+// vec4 differentVec = someVec.xyxx;
+// differentVec.x = 1.0, differentVec.y = 2.0, differentVec.z = 1.0, differentVec.w = 1.0
+// vec3 anotherVec = differentVec.zyw;
+// anotherVec.x = 1.0, anotherVec.y = 2.0, anotherVec.z = 1.0
+// vec4 otherVec = someVec.xxxx + anotherVec.yxzy;
+//   otherVec.x = someVec.x + anotherVec.y;
+// otherVec.x = 3.0, otherVec.y = 2.0, otherVec.z = 2.0, otherVec.w = 3.0
+// otherVec = otherVec.xxxx;
+
+// Case : 2
+// vec4 differentVec = someVec.yxyy;
+// differentVec.x = 2.0, differentVec.y = 1.0, differentVec.z = 2.0, differentVec.w = 2.0
+// vec3 anotherVec = differentVec.zyw;
+// anotherVec.x = 2.0, anotherVec.y = 1.0, anotherVec.z = 2.0
+
+// Case : 3
+// vec4 differentVec = someVec.xxxx;
+// differentVec.x = 1.0, differentVec.y = 1.0, differentVec.z = 1.0, differentVec.w = 1.0
+// vec3 anotherVec = differentVec.zyw;
+// anotherVec.x = 1.0, anotherVec.y = 1.0, anotherVec.z = 1.0
