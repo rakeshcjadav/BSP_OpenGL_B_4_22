@@ -2,11 +2,64 @@
 #include"glad/glad.h"
 #include<GLFW\glfw3.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include"stb_image.h"
+
 using namespace std;
 
 unsigned int CreateMesh(float* vertices, int nVertices, unsigned int* indices, int nIndices);
 unsigned int CreateProgram(const char* VertexShaderSource, const char* FragmentShaderSource);
 void RenderCompactProfile();
+
+unsigned int LoadTexture(std::string filePath)
+{
+    stbi_set_flip_vertically_on_load(true);
+    int width, height, nrChannels;
+    unsigned char* data = stbi_load(filePath.c_str(), &width, &height, &nrChannels, 0);
+
+    if (data)
+    {
+        std::cout << "Image Loaded : " << width << ", " << height << ", Channels : " << nrChannels << std::endl;
+    }
+    else
+    {
+        std::cout << "Could not load image" << std::endl;
+        return 0;
+    }
+
+    GLenum format = GL_RGB;
+    if (nrChannels == 3)
+        format = GL_RGB;
+    else if (nrChannels == 4)
+        format = GL_RGBA;
+
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+    
+    // Mirrored Repeat
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+
+    // Clamp to Edge
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // Clamp to Border
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+    float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    if(data)
+        stbi_image_free(data);
+
+    return texture;
+}
 
 int main()
 {
@@ -45,11 +98,11 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
     float vertices[] = {
-        // position
-        -0.5f, -0.5f, 0.0f,       // top left
-        -0.5f, 0.5f, 0.0f,        // bottom left
-         0.5f, -0.5f, 0.0f,       // bottom right
-         0.5f, 0.5f, 0.0f,        // top right
+        // position             // texture-coordinates
+        -0.5f, -0.5f, 0.0f,     -0.01f, -0.01f,  // top left
+        -0.5f, 0.5f, 0.0f,      -.01f, 1.01f,  // bottom left
+         0.5f, -0.5f, 0.0f,     1.01f, -0.01f,  // bottom right
+         0.5f, 0.5f, 0.0f,      1.01f, 1.01f   // top right
     };
 
     unsigned int indices[] = {
@@ -57,33 +110,33 @@ int main()
     };
 
     unsigned int mesh = CreateMesh(vertices, sizeof(vertices) / sizeof(float), indices, sizeof(indices) / sizeof(unsigned int));
-
+    
     float verticeRectangle[] = {
-        // position
-        -0.5f, -0.5f, 0.0f,       // top left
-        -0.5f, 0.5f, 0.0f,        // bottom left
-         0.5f, -0.5f, 0.0f,       // bottom right
-         0.5f, 0.5f, 0.0f,        // top right
-
-         -0.5f, 1.0f, 0.0f,       // top top right
-          0.5f, 1.0f, 0.0f,       // top top left
+        // position               // UV  
+        -0.5f, -0.5f, 0.0f,       0.0f, 0.0f, // bottom left
+         0.5f, -0.5f, 0.0f,       1.0f, 0.0f, // bottom right
+         0.0f, 0.5f, 0.0f,        0.5f, 1.0f // top middle
     };
 
     unsigned int indicesRectangle[] = {
-        0, 2, 1, 3, 4, 5
+        0, 1, 2
     };
 
-    unsigned int meshRectangle = CreateMesh(vertices, sizeof(vertices) / sizeof(float), indices, sizeof(indices) / sizeof(unsigned int));
-
+    unsigned int meshRectangle = CreateMesh(verticeRectangle, sizeof(verticeRectangle) / sizeof(float), indicesRectangle, sizeof(indicesRectangle) / sizeof(unsigned int));
+    
     const char* VertexShaderSource = 
         "#version 330 core\n"
         "layout(location = 0) in vec3 aPosition;\n"
+        "layout(location = 1) in vec2 aTexCoord; // UV \n"
 
         "uniform vec3 uOffset;\n"
+
+        "out vec2 outUV;"
 
         "void main()\n"
         "{\n"
         "    gl_Position = vec4(aPosition + uOffset, 1.0);\n"
+        "    outUV = aTexCoord;\n"
         "}\n";
 
     const char* VertexShaderSourceSomething =
@@ -101,15 +154,26 @@ int main()
         "#version 330 core\n"
         "out vec4 FragColor;\n"
 
+        "in vec2 outUV;\n"
+
+        "uniform sampler2D texContainer;\n"
+        "uniform sampler2D texMinion;\n"
+
         "uniform vec3 uColor;\n"
 
         "void main()\n"
         "{\n"
-        "    FragColor = vec4(uColor, 1.0f);\n"
+        "    vec4 colorContainer = texture(texContainer, outUV);\n"
+        "    vec4 colorMinion = texture(texMinion, outUV);\n"
+        "    vec3 color = colorMinion.rgb * colorMinion.a + colorContainer.rgb * (1 - colorMinion.a);\n"
+        "    FragColor = vec4(color.rgb, colorContainer.a);\n"
         "}\n";
 
     unsigned int shaderProgram = CreateProgram(VertexShaderSource, FragmentShaderSource);
     unsigned int shaderProgramSomething = CreateProgram(VertexShaderSourceSomething, FragmentShaderSource);
+
+    unsigned int textureContainer = LoadTexture("..\\media\\textures\\container.jpg");
+    unsigned int textureMinion = LoadTexture("..\\media\\textures\\minion.png");
 
     while (!glfwWindowShouldClose(window))
     {
@@ -122,27 +186,48 @@ int main()
         float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
 
         glUseProgram(shaderProgram);
+        
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, textureContainer);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, textureMinion);
         {
             int colorLocation = glGetUniformLocation(shaderProgram, "uColor");
             glUniform3f(colorLocation, 0.0f, greenValue, 1.0f);
 
             int offsetLocation = glGetUniformLocation(shaderProgram, "uOffset");
-            glUniform3f(offsetLocation, -0.2f, 0.0f, 0.0f);
+            glUniform3f(offsetLocation, -0.5f, 0.3f, 0.0f);
+
+            int texContainerLocation = glGetUniformLocation(shaderProgram, "texContainer");
+            glUniform1i(texContainerLocation, 0);
+
+            int texMinionLocation = glGetUniformLocation(shaderProgram, "texMinion");
+            glUniform1i(texMinionLocation, 1);
         }
         glBindVertexArray(mesh);
         {
-            //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);      // If you just VBOs
+            //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);      // If you have just VBOs
             glDrawElements(GL_TRIANGLE_STRIP, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, 0); // If you have EBOs defined
         }
 
+        glUseProgram(shaderProgram);
 
-        glUseProgram(shaderProgramSomething);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, textureContainer);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, textureMinion);
         {
             int colorLocation = glGetUniformLocation(shaderProgram, "uColor");
             glUniform3f(colorLocation, 0.0f, 0.0f, greenValue);
 
             int offsetLocation = glGetUniformLocation(shaderProgram, "uOffset");
-            glUniform3f(offsetLocation, 0.2f, 0.0f, 0.0f);
+            glUniform3f(offsetLocation, 0.5f, -0.3f, 0.0f);
+
+            int texContainerLocation = glGetUniformLocation(shaderProgram, "texContainer");
+            glUniform1i(texContainerLocation, 0);
+
+            int texMinionLocation = glGetUniformLocation(shaderProgram, "texMinion");
+            glUniform1i(texMinionLocation, 1);
         }
         glBindVertexArray(meshRectangle);
         {
@@ -172,11 +257,11 @@ unsigned int CreateMesh(float * vertices, int nVertices, unsigned int * indices,
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices) * nVertices, vertices, GL_STATIC_DRAW);
 
         // location 0, read 3 GL_FLOAT and jump(stride) 3 * sizeof(float) and offset is 0
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)(0 * sizeof(float)));
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(0 * sizeof(float)));
         glEnableVertexAttribArray(0);
 
-        //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-        //glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
 
         // location 2, read 3 GL_FLOAT and jump(stride) 4 * sizeof(float) and offset is 1
         // glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(1 * sizeof(float)));
