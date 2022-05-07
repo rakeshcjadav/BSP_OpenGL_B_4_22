@@ -10,6 +10,9 @@ using namespace std;
 unsigned int CreateMesh(float* vertices, int nVertices, unsigned int* indices, int nIndices);
 unsigned int CreateProgram(const char* VertexShaderSource, const char* FragmentShaderSource);
 void RenderCompactProfile();
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+
+float g_fScale = 1.0f;
 
 unsigned int LoadTexture(std::string filePath)
 {
@@ -38,20 +41,27 @@ unsigned int LoadTexture(std::string filePath)
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
     
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
     // Mirrored Repeat
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
 
     // Clamp to Edge
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     // Clamp to Border
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
-    float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    //float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
+    //glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // Trilinear filtering
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
 
     glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -69,7 +79,10 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
+    int width = 900;
+    int height = 900;
+
+    GLFWwindow* window = glfwCreateWindow(width, height, "LearnOpenGL", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -85,10 +98,12 @@ int main()
         return -1;
     }
 
+    glfwSetScrollCallback(window, scroll_callback);
+
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // TODO: Revisit once triangle is drawn
-    glViewport(0, 0, 800, 600);
+    glViewport(0, 0, width, height);
     //glEnable(GL_CULL_FACE);
     //glCullFace(GL_BACK);
 
@@ -100,9 +115,9 @@ int main()
     float vertices[] = {
         // position             // texture-coordinates
         -0.5f, -0.5f, 0.0f,     -0.01f, -0.01f,  // top left
-        -0.5f, 0.5f, 0.0f,      -.01f, 1.01f,  // bottom left
+        -0.5f, 0.5f, 0.0f,      -.01f, 1.01f,   // bottom left
          0.5f, -0.5f, 0.0f,     1.01f, -0.01f,  // bottom right
-         0.5f, 0.5f, 0.0f,      1.01f, 1.01f   // top right
+         0.5f, 0.5f, 0.0f,      1.01f, 1.01f    // top right
     };
 
     unsigned int indices[] = {
@@ -129,13 +144,37 @@ int main()
         "layout(location = 0) in vec3 aPosition;\n"
         "layout(location = 1) in vec2 aTexCoord; // UV \n"
 
+        "uniform float uScale;\n"
         "uniform vec3 uOffset;\n"
 
-        "out vec2 outUV;"
+        "out vec2 outUV;\n"
+
+        "uniform mat4 uCombinedTransform;\n"
+
+        "const mat4 scaleMatrix = mat4( 2.0f, 0.0f, 0.0f, 0.0f,"
+                                        "0.0f, 2.0f, 0.0f, 0.0f,"
+                                        "0.0f, 0.0f, 2.0f, 0.0f,"
+                                        "0.0f, 0.0f, 0.0f, 1.0f ); \n"
+
+        // Column major matrix
+        "const mat4 translateMatrix = mat4(1.0f, 0.0f, 0.0f, 0.0f,"
+                                          "0.0f, 1.0f, 0.0f, 0.0f,"
+                                          "0.0f, 0.0f, 1.0f, 0.0f,"
+                                          "0.5f, 0.0f, 0.0f, 1.0f ); \n"
+
+        "const float theta = 90.0f * 3.14f/180.0f;\n"
+
+        "const mat4 rotationMatrix = mat4(cos(theta), sin(theta), 0.0f, 0.0f,"
+                                          "-sin(theta), cos(theta), 0.0f, 0.0f,"
+                                          "0.0f, 0.0f, 1.0f, 0.0f,"
+                                          "0.0f, 0.0f, 0.0f, 1.0f ); \n"
 
         "void main()\n"
         "{\n"
-        "    gl_Position = vec4(aPosition + uOffset, 1.0);\n"
+        "    mat4 combinedTransform = translateMatrix * rotationMatrix * scaleMatrix;\n"
+        "    vec4 vertexPos = combinedTransform * vec4(aPosition, 1.0);\n"
+        "    gl_Position = vertexPos;\n"
+        "    //gl_Position = vec4(aPosition*vec3(uScale) + uOffset, 1.0);\n"
         "    outUV = aTexCoord;\n"
         "}\n";
 
@@ -184,6 +223,7 @@ int main()
 
         float timeValue = (float)glfwGetTime();
         float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
+        float scale = (sin(timeValue * 0.2f)) + 1.5f;
 
         glUseProgram(shaderProgram);
         
@@ -192,11 +232,14 @@ int main()
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, textureMinion);
         {
+            int scaleLocation = glGetUniformLocation(shaderProgram, "uScale");
+            glUniform1f(scaleLocation, scale);
+
             int colorLocation = glGetUniformLocation(shaderProgram, "uColor");
             glUniform3f(colorLocation, 0.0f, greenValue, 1.0f);
 
             int offsetLocation = glGetUniformLocation(shaderProgram, "uOffset");
-            glUniform3f(offsetLocation, -0.5f, 0.3f, 0.0f);
+            glUniform3f(offsetLocation, 0.0f, 0.0f, 0.0f);
 
             int texContainerLocation = glGetUniformLocation(shaderProgram, "texContainer");
             glUniform1i(texContainerLocation, 0);
@@ -209,7 +252,7 @@ int main()
             //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);      // If you have just VBOs
             glDrawElements(GL_TRIANGLE_STRIP, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, 0); // If you have EBOs defined
         }
-
+        /*
         glUseProgram(shaderProgram);
 
         glActiveTexture(GL_TEXTURE0);
@@ -232,7 +275,7 @@ int main()
         glBindVertexArray(meshRectangle);
         {
             glDrawElements(GL_TRIANGLE_STRIP, sizeof(indicesRectangle) / sizeof(unsigned int), GL_UNSIGNED_INT, 0);
-        }
+        }*/
 
         // Double buffering 
         glfwSwapBuffers(window);
@@ -358,6 +401,16 @@ void RenderCompactProfile()
         glVertex3f(0.0f, -0.5f, 0.05f);
         glVertex3f(0.5f, 0.1f, 0.05f);
     glEnd();
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    g_fScale -= (float)yoffset*0.1f;
+    if (g_fScale <= 0.0f)
+        g_fScale = 0.01f;
+    if (g_fScale > 5.0f)
+        g_fScale = 5.0f;
+
 }
 
 // E.g.
