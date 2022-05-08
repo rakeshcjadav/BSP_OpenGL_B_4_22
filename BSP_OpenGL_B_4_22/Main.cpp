@@ -2,6 +2,11 @@
 #include"glad/glad.h"
 #include<GLFW\glfw3.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include"stb_image.h"
 
@@ -11,6 +16,70 @@ unsigned int CreateMesh(float* vertices, int nVertices, unsigned int* indices, i
 unsigned int CreateProgram(const char* VertexShaderSource, const char* FragmentShaderSource);
 void RenderCompactProfile();
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+
+void GLMPractice()
+{  
+    /*
+    {
+        glm::vec3 vec(100.0f, 0.0f, 0.0f);
+        glm::vec3 vec1(50.0f, 50.0f, 0.0f);
+
+        vec = glm::normalize(vec);
+        vec1 = glm::normalize(vec1);
+        std::cout << "outputVec : " << glm::to_string(vec) << std::endl;
+        std::cout << "outputVec : " << glm::to_string(vec1) << std::endl;
+
+        float angle = glm::dot(vec, vec1);
+
+        std::cout << "Anlge : " << glm::acos(angle) * (180.0f / glm::pi<float>()) << std::endl;
+
+        glm::vec2 x(1.0, 0.0);
+        glm::vec2 y(-1.0, -1.0);
+        y = glm::normalize(y);
+
+        float a = glm::dot(x, y);
+
+        std::cout << "Anlge : " << a << ": " << glm::acos(a) * (180.0f / glm::pi<float>()) << std::endl;
+    }
+    {
+        glm::vec3 x(1.0, 0.0, 0.0);
+        glm::vec3 y(0.0, 0.0, 1.0);
+
+        glm::vec3 z = glm::cross(y, x);
+        std::cout << "Cross Product : " << glm::to_string(z) << std::endl;
+    }*/
+    {
+        glm::vec4 pos1(1.0f, 0.0f, 0.0f, 1.0f);
+        glm::vec4 pos2(1.0f, 1.0f, 0.0f, 1.0f);
+
+
+        glm::mat4 mat1 = glm::mat4(1.0f);
+        mat1 = glm::translate(mat1, glm::vec3(0.0f, 2.0f, 0.0f));
+        mat1 = glm::rotate(mat1, 45.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+        mat1 = glm::rotate(mat1, 35.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+        mat1 = glm::scale(mat1, glm::vec3(2.0f, 2.0f, 2.0f));
+        std::cout << "mat1 : " << glm::to_string(mat1) << std::endl;
+
+        glm::mat4 mat2 = glm::mat4(1.0f);
+        std::cout << "mat2 : " << glm::to_string(mat2) << std::endl;
+
+        glm::vec4 outPos = mat1 * pos1;
+        glm::vec4 outPos2 = mat1 * pos2;
+        std::cout << "outPos : " << glm::to_string(outPos) << std::endl;
+        std::cout << "outPos2 : " << glm::to_string(outPos2) << std::endl;
+
+        /*
+        glm::mat4 out = mat1 * mat2;
+        std::cout << "out : " << glm::to_string(out) << std::endl;
+
+        glm::mat4 out1 = mat2 * mat1;
+        std::cout << "out1 : " << glm::to_string(out1) << std::endl;*/
+
+    }
+
+    int i;
+    std::cin >> i;
+}
 
 float g_fScale = 1.0f;
 
@@ -151,28 +220,9 @@ int main()
 
         "uniform mat4 uCombinedTransform;\n"
 
-        "const mat4 scaleMatrix = mat4( 2.0f, 0.0f, 0.0f, 0.0f,"
-                                        "0.0f, 2.0f, 0.0f, 0.0f,"
-                                        "0.0f, 0.0f, 2.0f, 0.0f,"
-                                        "0.0f, 0.0f, 0.0f, 1.0f ); \n"
-
-        // Column major matrix
-        "const mat4 translateMatrix = mat4(1.0f, 0.0f, 0.0f, 0.0f,"
-                                          "0.0f, 1.0f, 0.0f, 0.0f,"
-                                          "0.0f, 0.0f, 1.0f, 0.0f,"
-                                          "0.5f, 0.0f, 0.0f, 1.0f ); \n"
-
-        "const float theta = 90.0f * 3.14f/180.0f;\n"
-
-        "const mat4 rotationMatrix = mat4(cos(theta), sin(theta), 0.0f, 0.0f,"
-                                          "-sin(theta), cos(theta), 0.0f, 0.0f,"
-                                          "0.0f, 0.0f, 1.0f, 0.0f,"
-                                          "0.0f, 0.0f, 0.0f, 1.0f ); \n"
-
         "void main()\n"
         "{\n"
-        "    mat4 combinedTransform = translateMatrix * rotationMatrix * scaleMatrix;\n"
-        "    vec4 vertexPos = combinedTransform * vec4(aPosition, 1.0);\n"
+        "    vec4 vertexPos = uCombinedTransform * vec4(aPosition, 1.0);\n"
         "    gl_Position = vertexPos;\n"
         "    //gl_Position = vec4(aPosition*vec3(uScale) + uOffset, 1.0);\n"
         "    outUV = aTexCoord;\n"
@@ -223,7 +273,7 @@ int main()
 
         float timeValue = (float)glfwGetTime();
         float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
-        float scale = (sin(timeValue * 0.2f)) + 1.5f;
+        float scale = (sin(timeValue * 0.2f)*0.5f) + 0.0f;
 
         glUseProgram(shaderProgram);
         
@@ -232,6 +282,13 @@ int main()
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, textureMinion);
         {
+            glm::mat4 transform = glm::mat4(1.0f);
+            transform = glm::translate(transform, glm::vec3(scale, 0.0f, 0.0f));
+            transform = glm::rotate(transform, scale, glm::vec3(0.0f, 0.0f, 1.0f));
+            transform = glm::scale(transform, glm::vec3(scale*2.0, scale*2.0f, 1.0f));
+            int combinedTrasLocation = glGetUniformLocation(shaderProgram, "uCombinedTransform");
+            glUniformMatrix4fv(combinedTrasLocation, 1, false, glm::value_ptr(transform));
+
             int scaleLocation = glGetUniformLocation(shaderProgram, "uScale");
             glUniform1f(scaleLocation, scale);
 
