@@ -184,7 +184,7 @@ int main()
     float vertices[] = {
         // position             // texture-coordinates
         -0.5f, -0.5f, 0.0f,     -0.01f, -0.01f,  // top left
-        -0.5f, 0.5f, 0.0f,      -.01f, 1.01f,   // bottom left
+        -0.5f, 0.5f, 0.0f,      -0.01f, 1.01f,   // bottom left
          0.5f, -0.5f, 0.0f,     1.01f, -0.01f,  // bottom right
          0.5f, 0.5f, 0.0f,      1.01f, 1.01f    // top right
     };
@@ -284,8 +284,8 @@ int main()
         {
             glm::mat4 transform = glm::mat4(1.0f);
             transform = glm::translate(transform, glm::vec3(scale, 0.0f, 0.0f));
-            transform = glm::rotate(transform, scale, glm::vec3(0.0f, 0.0f, 1.0f));
-            transform = glm::scale(transform, glm::vec3(scale*2.0, scale*2.0f, 1.0f));
+            //transform = glm::rotate(transform, scale, glm::vec3(0.0f, 0.0f, 1.0f));
+            //transform = glm::scale(transform, glm::vec3(scale*2.0, scale*2.0f, 1.0f));
             int combinedTrasLocation = glGetUniformLocation(shaderProgram, "uCombinedTransform");
             glUniformMatrix4fv(combinedTrasLocation, 1, false, glm::value_ptr(transform));
 
