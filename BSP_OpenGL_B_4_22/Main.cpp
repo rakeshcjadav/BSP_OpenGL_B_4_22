@@ -1,4 +1,5 @@
 #include<iostream>
+#include<vector>
 #include"glad/glad.h"
 #include<GLFW\glfw3.h>
 
@@ -12,10 +13,40 @@
 
 using namespace std;
 
-unsigned int CreateMesh(float* vertices, int nVertices, unsigned int* indices, int nIndices);
+// Forward Declarations
+struct SMeshData;
+
+unsigned int CreateMesh(const SMeshData & meshData);
 unsigned int CreateProgram(const char* VertexShaderSource, const char* FragmentShaderSource);
 void RenderCompactProfile();
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+
+struct SVertex
+{
+    glm::vec3 position; // 3 floats = 3 * 4 bytes = 12 bytes
+    glm::vec2 uv; // 2 floats = 2 * 4 bytes = 8 bytes
+    int colorID; // 4 bytes
+
+    SVertex()
+    {
+        position = glm::zero<glm::vec3>();
+        uv = glm::zero<glm::vec2>();
+        colorID = 0;
+    }
+
+    SVertex(glm::vec3 _position, glm::vec2 _uv, int _colorID)
+    {
+        position = _position;
+        uv = _uv;
+        colorID = _colorID;
+    }
+};
+
+struct SMeshData
+{
+    std::vector<SVertex>        aVertices;
+    std::vector<unsigned int>   aIndices;
+};
 
 void GLMPractice()
 {  
@@ -148,8 +179,8 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 
-    int width = 900;
-    int height = 900;
+    int width = 1280;
+    int height = 720;
 
     GLFWwindow* window = glfwCreateWindow(width, height, "LearnOpenGL", NULL, NULL);
     if (window == NULL)
@@ -181,51 +212,93 @@ int main()
     //glBlendFunc(GL_ONE, GL_ZERO); // Replace Blend
     glEnable(GL_DEPTH_TEST);
 
-    float vertices[] = {
-        // position             // texture-coordinates
-        -0.5f, -0.5f, 0.0f,     -0.01f, -0.01f,  // top left
-        -0.5f, 0.5f, 0.0f,      -0.01f, 1.01f,   // bottom left
-         0.5f, -0.5f, 0.0f,     1.01f, -0.01f,  // bottom right
-         0.5f, 0.5f, 0.0f,      1.01f, 1.01f    // top right
-    };
+    SMeshData planeMeshData;
 
-    unsigned int indices[] = {
-        0, 2, 1, 3
+    planeMeshData.aVertices = {
+        {{-0.5f, -0.5f, 0.0f}, {-0.01f, -0.01f}, {0}},
+        {{-0.5f, 0.5f, 0.0f},  {-0.01f, 1.01f}, {0}},
+        {{ 0.5f, -0.5f, 0.0f}, {1.01f, -0.01f}, {0}},
+        {{ 0.5f, 0.5f, 0.0f},  {1.01f, 1.01f}, {0}}
     };
+    /*
+    std::vector<SVertex> aVertices;
+    aVertices.push_back(SVertex(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec2(-0.01f, -0.01f)));
+    aVertices.push_back(SVertex(glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec2(-0.01f, 1.01f)));
+    aVertices.push_back(SVertex(glm::vec3(0.5f, -0.5f, 0.0f), glm::vec2(1.01f, -0.01f)));
+    aVertices.push_back(SVertex(glm::vec3(0.5f, 0.5f, 0.0f), glm::vec2(1.01f, 1.01f)));
+    */
+    planeMeshData.aIndices = { 0, 2, 1, 3 };
 
-    unsigned int mesh = CreateMesh(vertices, sizeof(vertices) / sizeof(float), indices, sizeof(indices) / sizeof(unsigned int));
+    unsigned int planeMesh = CreateMesh(planeMeshData);
+
+    std::vector<SVertex> vertices = {
+        // Front
+        {{-1.0f, -1.0f, 1.0f},  {0.0f, 0.0f}, {0}},
+        {{-1.0f,  1.0f, 1.0f},  {0.0f, 1.0f}, {0}},
+        {{ 1.0f, -1.0f, 1.0f},  {1.0f, 0.0f}, {0}},
+        {{ 1.0f,  1.0f, 1.0f},  {1.0f, 1.0f}, {0}},
+    };
+    std::vector<unsigned int> indices = { 0, 2, 1, 3 };
+
+    SMeshData cubeMeshData;
+    // Top
+    struct SAngle
+    {
+        float fAngle;
+        glm::vec3 vAxis;
+    };
+    std::vector<SAngle> aAngles = {
+        {{0.0f}, {1.0f, 0.0f, 0.0f}},    // Front
+        {{90.0f}, {1.0f, 0.0f, 0.0f}},   // Top
+        {{180.0f}, {1.0f, 0.0f, 0.0f}},  // Back
+        {{90.0f}, {-1.0f, 0.0f, 0.0f}},  // Bottom
+        {{90.0f}, {0.0f, 1.0f, 0.0f}},   // left
+        {{90.0f}, {0.0f, -1.0f, 0.0f}}   // right
+    };
     
-    float verticeRectangle[] = {
-        // position               // UV  
-        -0.5f, -0.5f, 0.0f,       0.0f, 0.0f, // bottom left
-         0.5f, -0.5f, 0.0f,       1.0f, 0.0f, // bottom right
-         0.0f, 0.5f, 0.0f,        0.5f, 1.0f // top middle
-    };
-
-    unsigned int indicesRectangle[] = {
-        0, 1, 2
-    };
-
-    unsigned int meshRectangle = CreateMesh(verticeRectangle, sizeof(verticeRectangle) / sizeof(float), indicesRectangle, sizeof(indicesRectangle) / sizeof(unsigned int));
+    unsigned int face = 0;
+    for (const SAngle& angle : aAngles)
+    {
+        glm::mat4 matRotate = glm::mat4(1.0f);
+        matRotate = glm::rotate(matRotate, glm::radians(angle.fAngle), angle.vAxis);
+        for (SVertex vertex : vertices)
+        {
+            vertex.position = matRotate * glm::vec4(vertex.position, 1.0f);
+            vertex.colorID = face;
+            cubeMeshData.aVertices.push_back(vertex);
+        }
+        cubeMeshData.aIndices.push_back(indices[0] + 4 * face);
+        cubeMeshData.aIndices.push_back(indices[1] + 4 * face);
+        cubeMeshData.aIndices.push_back(indices[2] + 4 * face);
+        cubeMeshData.aIndices.push_back(indices[3] + 4 * face);
+        face++;
+    }
     
+    unsigned int cubeMesh = CreateMesh(cubeMeshData);
+
     const char* VertexShaderSource = 
         "#version 330 core\n"
         "layout(location = 0) in vec3 aPosition;\n"
         "layout(location = 1) in vec2 aTexCoord; // UV \n"
+        "layout(location = 2) in int colorID;\n"
 
         "uniform float uScale;\n"
         "uniform vec3 uOffset;\n"
 
         "out vec2 outUV;\n"
+        "flat out int outColorID;\n"
 
         "uniform mat4 uCombinedTransform;\n"
+        "uniform mat4 uWorldMatrix;\n"
+        "uniform mat4 uProjectionMatrix;\n"
 
         "void main()\n"
         "{\n"
-        "    vec4 vertexPos = uCombinedTransform * vec4(aPosition, 1.0);\n"
+        "    vec4 vertexPos = uProjectionMatrix * uWorldMatrix * vec4(aPosition, 1.0);\n"
         "    gl_Position = vertexPos;\n"
         "    //gl_Position = vec4(aPosition*vec3(uScale) + uOffset, 1.0);\n"
         "    outUV = aTexCoord;\n"
+        "    outColorID = colorID;\n"
         "}\n";
 
     const char* VertexShaderSourceSomething =
@@ -244,11 +317,21 @@ int main()
         "out vec4 FragColor;\n"
 
         "in vec2 outUV;\n"
+        "flat in int outColorID;\n"
 
         "uniform sampler2D texContainer;\n"
         "uniform sampler2D texMinion;\n"
 
         "uniform vec3 uColor;\n"
+
+        "const vec3 colors[6] = vec3[](\n"
+            "vec3(1.0f, 0.0f, 0.0f),\n"
+            "vec3(0.0f, 1.0f, 0.0f),\n"
+            "vec3(0.0f, 0.0f, 1.0f),\n"
+            "vec3(1.0f, 1.0f, 0.0f),\n"
+            "vec3(0.0f, 1.0f, 1.0f),\n"
+            "vec3(1.0f, 0.0f, 1.0f)\n"
+        ");\n"
 
         "void main()\n"
         "{\n"
@@ -256,6 +339,7 @@ int main()
         "    vec4 colorMinion = texture(texMinion, outUV);\n"
         "    vec3 color = colorMinion.rgb * colorMinion.a + colorContainer.rgb * (1 - colorMinion.a);\n"
         "    FragColor = vec4(color.rgb, colorContainer.a);\n"
+        "    FragColor = vec4(colors[outColorID], 1.0);\n"
         "}\n";
 
     unsigned int shaderProgram = CreateProgram(VertexShaderSource, FragmentShaderSource);
@@ -282,12 +366,24 @@ int main()
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, textureMinion);
         {
-            glm::mat4 transform = glm::mat4(1.0f);
-            transform = glm::translate(transform, glm::vec3(scale, 0.0f, 0.0f));
-            //transform = glm::rotate(transform, scale, glm::vec3(0.0f, 0.0f, 1.0f));
-            //transform = glm::scale(transform, glm::vec3(scale*2.0, scale*2.0f, 1.0f));
+            glm::mat4 matWorld = glm::mat4(1.0f);
+            matWorld = glm::translate(matWorld, glm::vec3(0.0f, 0.0f, -5.0f));
+            matWorld = glm::rotate(matWorld, scale*5.0f, glm::vec3(1.0f, 1.0f, 0.0f));
+            //matWorld = glm::scale(matWorld, glm::vec3(scale*2.0, scale*2.0f, 1.0f));
+
+            glm::mat4 matProjection;
+            matProjection = glm::perspective(glm::radians(60.0f+20.0f*scale), width / (height * 1.0f), 0.1f, 100.0f);
+
+            glm::mat4 matWorldProjection = matProjection * matWorld;
+
             int combinedTrasLocation = glGetUniformLocation(shaderProgram, "uCombinedTransform");
-            glUniformMatrix4fv(combinedTrasLocation, 1, false, glm::value_ptr(transform));
+            glUniformMatrix4fv(combinedTrasLocation, 1, false, glm::value_ptr(matWorldProjection));
+
+            int worldMatLocation = glGetUniformLocation(shaderProgram, "uWorldMatrix");
+            glUniformMatrix4fv(worldMatLocation, 1, false, glm::value_ptr(matWorld));
+
+            int projectionMatLocation = glGetUniformLocation(shaderProgram, "uProjectionMatrix");
+            glUniformMatrix4fv(projectionMatLocation, 1, false, glm::value_ptr(matProjection));
 
             int scaleLocation = glGetUniformLocation(shaderProgram, "uScale");
             glUniform1f(scaleLocation, scale);
@@ -304,10 +400,24 @@ int main()
             int texMinionLocation = glGetUniformLocation(shaderProgram, "texMinion");
             glUniform1i(texMinionLocation, 1);
         }
-        glBindVertexArray(mesh);
+        glBindVertexArray(cubeMesh);
         {
             //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);      // If you have just VBOs
-            glDrawElements(GL_TRIANGLE_STRIP, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, 0); // If you have EBOs defined
+            glDrawElements(GL_TRIANGLE_STRIP, cubeMeshData.aIndices.size(), GL_UNSIGNED_INT, 0); // If you have EBOs defined
+        }
+        {
+            glm::mat4 matWorld = glm::mat4(1.0f);
+            matWorld = glm::translate(matWorld, glm::vec3(3.0f, 0.0f, -5.0f));
+            matWorld = glm::rotate(matWorld, scale * 5.0f, glm::vec3(1.0f, 1.0f, 0.0f));
+            //matWorld = glm::scale(matWorld, glm::vec3(scale*2.0, scale*2.0f, 1.0f));
+
+            int worldMatLocation = glGetUniformLocation(shaderProgram, "uWorldMatrix");
+            glUniformMatrix4fv(worldMatLocation, 1, false, glm::value_ptr(matWorld));
+        }
+        glBindVertexArray(cubeMesh);
+        {
+            //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);      // If you have just VBOs
+            glDrawElements(GL_TRIANGLE_STRIP, cubeMeshData.aIndices.size(), GL_UNSIGNED_INT, 0); // If you have EBOs defined
         }
         /*
         glUseProgram(shaderProgram);
@@ -343,36 +453,37 @@ int main()
     return 0;
 }
 
-unsigned int CreateMesh(float * vertices, int nVertices, unsigned int * indices, int nIndices)
+unsigned int CreateMesh(const SMeshData& meshData)
 {
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
     {
         // Creating Vertex Buffer Object
-        int y = sizeof(vertices);
         unsigned int VBO;
         glGenBuffers(1, &VBO);
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices) * nVertices, vertices, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(SVertex) * meshData.aVertices.size(), &(meshData.aVertices.front()), GL_STATIC_DRAW);
 
         // location 0, read 3 GL_FLOAT and jump(stride) 3 * sizeof(float) and offset is 0
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(0 * sizeof(float)));
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(SVertex), (void*)(0 * sizeof(float)));
         glEnableVertexAttribArray(0);
 
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(SVertex), (void*)(sizeof(glm::vec3)));
         glEnableVertexAttribArray(1);
+
+        glVertexAttribIPointer(2, 1, GL_INT, sizeof(SVertex), (void*)(sizeof(glm::vec3) + sizeof(glm::vec2)));
+        glEnableVertexAttribArray(2);
 
         // location 2, read 3 GL_FLOAT and jump(stride) 4 * sizeof(float) and offset is 1
         // glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(1 * sizeof(float)));
         // glEnableVertexAttribArray(0);
         //glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-        int x = sizeof(indices);
         unsigned int EBO;
         glGenBuffers(1, &EBO);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices) * nIndices, indices, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * meshData.aIndices.size(), &(meshData.aIndices.front()), GL_STATIC_DRAW);
         //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
     glBindVertexArray(0);
