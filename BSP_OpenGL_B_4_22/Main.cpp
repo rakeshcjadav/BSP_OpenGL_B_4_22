@@ -20,6 +20,11 @@ unsigned int CreateMesh(const SMeshData & meshData);
 unsigned int CreateProgram(const char* VertexShaderSource, const char* FragmentShaderSource);
 void RenderCompactProfile();
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+void mouseButton_callback(GLFWwindow* window, int button, int action, int mods);
+
+void processInput(GLFWwindow * window);
 
 struct SVertex
 {
@@ -113,6 +118,9 @@ void GLMPractice()
 }
 
 float g_fScale = 1.0f;
+glm::vec3 g_vCameraPos = glm::vec3(0.0f, 0.0f, 10.0f);
+glm::vec3 g_vCameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 g_vCameraUp = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f));
 
 unsigned int LoadTexture(std::string filePath)
 {
@@ -199,6 +207,9 @@ int main()
     }
 
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetKeyCallback(window, key_callback);
+    glfwSetMouseButtonCallback(window, mouseButton_callback);
 
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -290,11 +301,12 @@ int main()
 
         "uniform mat4 uCombinedTransform;\n"
         "uniform mat4 uWorldMatrix;\n"
+        "uniform mat4 uViewMatrix;\n"
         "uniform mat4 uProjectionMatrix;\n"
 
         "void main()\n"
         "{\n"
-        "    vec4 vertexPos = uProjectionMatrix * uWorldMatrix * vec4(aPosition, 1.0);\n"
+        "    vec4 vertexPos = uProjectionMatrix * uViewMatrix * uWorldMatrix * vec4(aPosition, 1.0);\n"
         "    gl_Position = vertexPos;\n"
         "    //gl_Position = vec4(aPosition*vec3(uScale) + uOffset, 1.0);\n"
         "    outUV = aTexCoord;\n"
@@ -367,12 +379,12 @@ int main()
         glBindTexture(GL_TEXTURE_2D, textureMinion);
         {
             glm::mat4 matWorld = glm::mat4(1.0f);
-            matWorld = glm::translate(matWorld, glm::vec3(0.0f, 0.0f, -5.0f));
-            matWorld = glm::rotate(matWorld, scale*5.0f, glm::vec3(1.0f, 1.0f, 0.0f));
+            matWorld = glm::translate(matWorld, glm::vec3(0.0f, 0.0f, 0.0f));
+            //matWorld = glm::rotate(matWorld, scale*5.0f, glm::vec3(1.0f, 1.0f, 0.0f));
             //matWorld = glm::scale(matWorld, glm::vec3(scale*2.0, scale*2.0f, 1.0f));
 
             glm::mat4 matProjection;
-            matProjection = glm::perspective(glm::radians(60.0f+20.0f*scale), width / (height * 1.0f), 0.1f, 100.0f);
+            matProjection = glm::perspective(glm::radians(60.0f), width / (height * 1.0f), 0.1f, 100.0f);
 
             glm::mat4 matWorldProjection = matProjection * matWorld;
 
@@ -381,6 +393,12 @@ int main()
 
             int worldMatLocation = glGetUniformLocation(shaderProgram, "uWorldMatrix");
             glUniformMatrix4fv(worldMatLocation, 1, false, glm::value_ptr(matWorld));
+
+            glm::mat4 matView = glm::mat4(1.0f);
+            matView = glm::lookAt(g_vCameraPos, g_vCameraPos + g_vCameraFront, g_vCameraUp);
+
+            int viewMatLocation = glGetUniformLocation(shaderProgram, "uViewMatrix");
+            glUniformMatrix4fv(viewMatLocation, 1, false, glm::value_ptr(matView));
 
             int projectionMatLocation = glGetUniformLocation(shaderProgram, "uProjectionMatrix");
             glUniformMatrix4fv(projectionMatLocation, 1, false, glm::value_ptr(matProjection));
@@ -407,7 +425,7 @@ int main()
         }
         {
             glm::mat4 matWorld = glm::mat4(1.0f);
-            matWorld = glm::translate(matWorld, glm::vec3(3.0f, 0.0f, -5.0f));
+            matWorld = glm::translate(matWorld, glm::vec3(3.0f, 0.0f, 0.0f));
             matWorld = glm::rotate(matWorld, scale * 5.0f, glm::vec3(1.0f, 1.0f, 0.0f));
             //matWorld = glm::scale(matWorld, glm::vec3(scale*2.0, scale*2.0f, 1.0f));
 
@@ -443,6 +461,7 @@ int main()
         {
             glDrawElements(GL_TRIANGLE_STRIP, sizeof(indicesRectangle) / sizeof(unsigned int), GL_UNSIGNED_INT, 0);
         }*/
+        processInput(window);
 
         // Double buffering 
         glfwSwapBuffers(window);
@@ -578,7 +597,90 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
         g_fScale = 0.01f;
     if (g_fScale > 5.0f)
         g_fScale = 5.0f;
+}
 
+bool g_bLookAround = false;
+bool g_bfirstMouse = true;
+double lastX, lastY;
+float yaw = -90.0f, pitch = 0.0f;
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    if (!g_bLookAround)
+        return;
+    if (g_bfirstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        g_bfirstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+    lastX = xpos;
+    lastY = ypos;
+
+    float sensitivity = 0.1f;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    yaw += xoffset;
+    pitch += yoffset;
+
+    if (pitch > 89.0f)
+        pitch = 89.0f;
+    if (pitch < -89.0f)
+        pitch = -89.0f;
+
+    glm::vec3 direction;
+    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    direction.y = sin(glm::radians(pitch));
+    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    g_vCameraFront = glm::normalize(direction);
+}
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    std::cout << "Key : ( " << key << ", " << scancode << ", " << action << ", " << mods << " ) " << std::endl;
+}
+
+void mouseButton_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    /*
+    if (action == GLFW_PRESS)
+    {
+        if(button == 0)
+            g_bLookAround = true;
+    }
+    else if (action = GLFW_RELEASE)
+    {
+        g_bLookAround = false;
+    }
+    */
+}
+
+void processInput(GLFWwindow* window)
+{
+    const float cameraSpeed = 0.05f; // adjust accordingly
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        g_vCameraPos += cameraSpeed * g_vCameraFront;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        g_vCameraPos -= cameraSpeed * g_vCameraFront;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        g_vCameraPos -= glm::normalize(glm::cross(g_vCameraFront, g_vCameraUp)) * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        g_vCameraPos += glm::normalize(glm::cross(g_vCameraFront, g_vCameraUp)) * cameraSpeed;
+
+
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+    {
+        g_bLookAround = true;
+    }
+    else
+    {
+        g_bLookAround = false;
+        g_bfirstMouse = true;
+    }
 }
 
 // E.g.
