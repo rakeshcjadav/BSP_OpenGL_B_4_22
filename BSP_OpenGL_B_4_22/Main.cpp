@@ -5,22 +5,47 @@
 #include"GLM.h"
 #include"Mesh.h"
 #include"Program.h"
-
-#define STB_IMAGE_IMPLEMENTATION
-#include"stb_image.h"
+#include"Texture.h"
 
 using namespace std;
 
-CMesh * CreateMesh(const SMeshData & meshData);
-CProgram * CreateProgram(const char* VertexShaderSource, const char* FragmentShaderSource);
+CMesh* CreateMesh(const SMeshData& meshData)
+{
+    return CMesh::CreateMesh(meshData);
+}
+
+CProgram* CreateProgram(const char* VertexShaderSource, const char* FragmentShaderSource)
+{
+    return CProgram::CreateProgram(VertexShaderSource, FragmentShaderSource);
+}
+
+CTexture* LoadTexture(std::string filePath)
+{
+    return CTexture::CreateTexture(filePath.c_str());
+}
+
+struct SScene
+{
+    CMesh* pPlaneMesh;
+    CMesh* pCubeMesh;
+    CProgram* pProgram;
+    CTexture* pTextureContainer;
+    CTexture* pTextureMinion;
+
+};
+
+void Render(SScene scene, int x, int y, int width, int height, float fValue);
+
 void RenderCompactProfile();
+
+// GLFW Call backs
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void mouseButton_callback(GLFWwindow* window, int button, int action, int mods);
 
+// Input processing
 void processInput(GLFWwindow * window);
-
 
 void GLMPractice()
 {  
@@ -86,67 +111,17 @@ void GLMPractice()
     std::cin >> i;
 }
 
+
 float g_fScale = 1.0f;
 glm::vec3 g_vCameraPos = glm::vec3(0.0f, 0.0f, 10.0f);
 glm::vec3 g_vCameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 g_vCameraUp = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f));
-
-unsigned int LoadTexture(std::string filePath)
-{
-    stbi_set_flip_vertically_on_load(true);
-    int width, height, nrChannels;
-    unsigned char* data = stbi_load(filePath.c_str(), &width, &height, &nrChannels, 0);
-
-    if (data)
-    {
-        std::cout << "Image Loaded : " << width << ", " << height << ", Channels : " << nrChannels << std::endl;
-    }
-    else
-    {
-        std::cout << "Could not load image" << std::endl;
-        return 0;
-    }
-
-    GLenum format = GL_RGB;
-    if (nrChannels == 3)
-        format = GL_RGB;
-    else if (nrChannels == 4)
-        format = GL_RGBA;
-
-    unsigned int texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-    
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    // Mirrored Repeat
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-
-    // Clamp to Edge
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    // Clamp to Border
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
-    //float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
-    //glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+bool g_bLookAround = false;
+bool g_bfirstMouse = true;
+double lastX, lastY;
+float yaw = -90.0f, pitch = 0.0f;
 
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // Trilinear filtering
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
-
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    if(data)
-        stbi_image_free(data);
-
-    return texture;
-}
 
 int main()
 {
@@ -183,7 +158,7 @@ int main()
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // TODO: Revisit once triangle is drawn
-    glViewport(0, 0, width, height);
+    
     //glEnable(GL_CULL_FACE);
     //glCullFace(GL_BACK);
 
@@ -192,8 +167,10 @@ int main()
     //glBlendFunc(GL_ONE, GL_ZERO); // Replace Blend
     glEnable(GL_DEPTH_TEST);
 
-    CMesh * pPlaneMesh = CreateMesh(SMeshData(SMeshData::MESH_TYPE::PLANE_MESH));
-    CMesh * pCubeMesh = CreateMesh(SMeshData(SMeshData::MESH_TYPE::CUBE_MESH));
+    SScene mainScene;
+
+    mainScene.pPlaneMesh = CreateMesh(SMeshData(SMeshData::MESH_TYPE::PLANE_MESH));
+    mainScene.pCubeMesh = CreateMesh(SMeshData(SMeshData::MESH_TYPE::CUBE_MESH));
 
     const char* VertexShaderSource = 
         "#version 330 core\n"
@@ -259,14 +236,14 @@ int main()
         "    vec4 colorMinion = texture(texMinion, outUV);\n"
         "    vec3 color = colorMinion.rgb * colorMinion.a + colorContainer.rgb * (1 - colorMinion.a);\n"
         "    FragColor = vec4(color.rgb, colorContainer.a);\n"
-        "    FragColor = vec4(colors[outColorID], 1.0);\n"
+        "    //FragColor = vec4(colors[outColorID], 1.0);\n"
         "}\n";
 
-    CProgram * pProgram = CreateProgram(VertexShaderSource, FragmentShaderSource);
-    CProgram * pProgramSomething = CreateProgram(VertexShaderSourceSomething, FragmentShaderSource);
+    mainScene.pProgram = CreateProgram(VertexShaderSource, FragmentShaderSource);
+    //CProgram * pProgramSomething = CreateProgram(VertexShaderSourceSomething, FragmentShaderSource);
 
-    unsigned int textureContainer = LoadTexture("..\\media\\textures\\container.jpg");
-    unsigned int textureMinion = LoadTexture("..\\media\\textures\\minion.png");
+    mainScene.pTextureContainer = LoadTexture("..\\media\\textures\\container.jpg");
+    mainScene.pTextureMinion = LoadTexture("..\\media\\textures\\minion.png");
 
     while (!glfwWindowShouldClose(window))
     {
@@ -279,74 +256,9 @@ int main()
         float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
         float scale = (sin(timeValue * 0.2f)*0.5f) + 0.0f;
 
-        pProgram->Use();
-        
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, textureContainer);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, textureMinion);
-        {
-            glm::mat4 matWorld = glm::mat4(1.0f);
-            matWorld = glm::translate(matWorld, glm::vec3(0.0f, 0.0f, 0.0f));
-            //matWorld = glm::rotate(matWorld, scale*5.0f, glm::vec3(1.0f, 1.0f, 0.0f));
-            //matWorld = glm::scale(matWorld, glm::vec3(scale*2.0, scale*2.0f, 1.0f));
+        Render(mainScene, 0, 0, width, height, scale);
+        //Render(mainScene, width/2, 0, width / 2, height, scale);
 
-            glm::mat4 matProjection;
-            matProjection = glm::perspective(glm::radians(60.0f), width / (height * 1.0f), 0.1f, 100.0f);
-
-            glm::mat4 matWorldProjection = matProjection * matWorld;
-
-            glm::mat4 matView = glm::mat4(1.0f);
-            matView = glm::lookAt(g_vCameraPos, g_vCameraPos + g_vCameraFront, g_vCameraUp);
-
-            pProgram->SetUniformMatrix("uCombinedTransform", matWorldProjection);
-            pProgram->SetUniformMatrix("uWorldMatrix", matWorld);
-            pProgram->SetUniformMatrix("uViewMatrix", matView);
-            pProgram->SetUniformMatrix("uProjectionMatrix", matProjection);
-
-            pProgram->SetUniformFloat("uScale", scale);
-
-            pProgram->SetUniformColor("uColor", glm::vec3(0.0f, greenValue, 1.0f));
-            pProgram->SetUniformColor("uOffset", glm::vec3(0.0f, 0.0f, 0.0f));
-            
-
-            pProgram->SetUniformInt("texContainer", 0);
-            pProgram->SetUniformInt("texMinion", 1);
-        }
-        pCubeMesh->Render();
-        {
-            glm::mat4 matWorld = glm::mat4(1.0f);
-            matWorld = glm::translate(matWorld, glm::vec3(3.0f, 0.0f, 0.0f));
-            matWorld = glm::rotate(matWorld, scale * 5.0f, glm::vec3(1.0f, 1.0f, 0.0f));
-            //matWorld = glm::scale(matWorld, glm::vec3(scale*2.0, scale*2.0f, 1.0f));
-
-            pProgram->SetUniformMatrix("uWorldMatrix", matWorld);
-        }
-        pCubeMesh->Render();
-        /*
-        glUseProgram(shaderProgram);
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, textureContainer);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, textureMinion);
-        {
-            int colorLocation = glGetUniformLocation(shaderProgram, "uColor");
-            glUniform3f(colorLocation, 0.0f, 0.0f, greenValue);
-
-            int offsetLocation = glGetUniformLocation(shaderProgram, "uOffset");
-            glUniform3f(offsetLocation, 0.5f, -0.3f, 0.0f);
-
-            int texContainerLocation = glGetUniformLocation(shaderProgram, "texContainer");
-            glUniform1i(texContainerLocation, 0);
-
-            int texMinionLocation = glGetUniformLocation(shaderProgram, "texMinion");
-            glUniform1i(texMinionLocation, 1);
-        }
-        glBindVertexArray(meshRectangle);
-        {
-            glDrawElements(GL_TRIANGLE_STRIP, sizeof(indicesRectangle) / sizeof(unsigned int), GL_UNSIGNED_INT, 0);
-        }*/
         processInput(window);
 
         // Double buffering 
@@ -358,48 +270,50 @@ int main()
     return 0;
 }
 
-CMesh * CreateMesh(const SMeshData& meshData)
+void Render(SScene scene, int x, int y, int width, int height, float fValue)
 {
-    return CMesh::CreateMesh(meshData);
-}
+    glViewport(x, y, width, height);
+    scene.pProgram->Use();
 
-unsigned int CreateVertexShader(const char* VertexShaderSource)
-{
-    unsigned int vertexShader;
-    vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &VertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-    int  success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success)
+    scene.pTextureContainer->Bind(0);
+    scene.pTextureMinion->Bind(1);
     {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-    return vertexShader;
-}
+        glm::mat4 matWorld = glm::mat4(1.0f);
+        matWorld = glm::translate(matWorld, glm::vec3(0.0f, 0.0f, 0.0f));
+        //matWorld = glm::rotate(matWorld, scale*5.0f, glm::vec3(1.0f, 1.0f, 0.0f));
+        //matWorld = glm::scale(matWorld, glm::vec3(scale*2.0, scale*2.0f, 1.0f));
 
-unsigned int CreateFragmentShader(const char* FragmentShaderSource)
-{
-    unsigned int fragmentShader;
-    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &FragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-    int  success;
-    char infoLog[512];
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success)
+        glm::mat4 matProjection;
+        matProjection = glm::perspective(glm::radians(60.0f), width / (height * 1.0f), 0.1f, 100.0f);
+
+        glm::mat4 matWorldProjection = matProjection * matWorld;
+
+        glm::mat4 matView = glm::mat4(1.0f);
+        matView = glm::lookAt(g_vCameraPos, g_vCameraPos + g_vCameraFront, g_vCameraUp);
+
+        scene.pProgram->SetUniformMatrix("uCombinedTransform", matWorldProjection);
+        scene.pProgram->SetUniformMatrix("uWorldMatrix", matWorld);
+        scene.pProgram->SetUniformMatrix("uViewMatrix", matView);
+        scene.pProgram->SetUniformMatrix("uProjectionMatrix", matProjection);
+
+        scene.pProgram->SetUniformFloat("uScale", fValue);
+
+        scene.pProgram->SetUniformColor("uColor", glm::vec3(0.0f, 0.0f, 1.0f));
+        scene.pProgram->SetUniformColor("uOffset", glm::vec3(0.0f, 0.0f, 0.0f));
+
+        scene.pProgram->SetUniformInt("texContainer", 0);
+        scene.pProgram->SetUniformInt("texMinion", 1);
+    }
+    scene.pCubeMesh->Render();
     {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-    return fragmentShader;
-}
+        glm::mat4 matWorld = glm::mat4(1.0f);
+        matWorld = glm::translate(matWorld, glm::vec3(3.0f, 0.0f, 0.0f));
+        matWorld = glm::rotate(matWorld, fValue * 5.0f, glm::vec3(1.0f, 1.0f, 0.0f));
+        //matWorld = glm::scale(matWorld, glm::vec3(scale*2.0, scale*2.0f, 1.0f));
 
-CProgram * CreateProgram(const char* VertexShaderSource, const char* FragmentShaderSource)
-{
-   return CProgram::CreateProgram(VertexShaderSource, FragmentShaderSource);
+        scene.pProgram->SetUniformMatrix("uWorldMatrix", matWorld);
+    }
+    scene.pCubeMesh->Render();
 }
 
 void RenderCompactProfile()
@@ -431,11 +345,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     if (g_fScale > 5.0f)
         g_fScale = 5.0f;
 }
-
-bool g_bLookAround = false;
-bool g_bfirstMouse = true;
-double lastX, lastY;
-float yaw = -90.0f, pitch = 0.0f;
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -515,6 +424,7 @@ void processInput(GLFWwindow* window)
         g_bfirstMouse = true;
     }
 }
+
 
 // E.g.
 // vec2 someVec = vec2(1.0, 2.0);
