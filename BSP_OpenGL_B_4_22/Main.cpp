@@ -4,6 +4,7 @@
 #include<GLFW\glfw3.h>
 #include"GLM.h"
 #include"Mesh.h"
+#include"Program.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include"stb_image.h"
@@ -11,7 +12,7 @@
 using namespace std;
 
 CMesh * CreateMesh(const SMeshData & meshData);
-unsigned int CreateProgram(const char* VertexShaderSource, const char* FragmentShaderSource);
+CProgram * CreateProgram(const char* VertexShaderSource, const char* FragmentShaderSource);
 void RenderCompactProfile();
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -261,8 +262,8 @@ int main()
         "    FragColor = vec4(colors[outColorID], 1.0);\n"
         "}\n";
 
-    unsigned int shaderProgram = CreateProgram(VertexShaderSource, FragmentShaderSource);
-    unsigned int shaderProgramSomething = CreateProgram(VertexShaderSourceSomething, FragmentShaderSource);
+    CProgram * pProgram = CreateProgram(VertexShaderSource, FragmentShaderSource);
+    CProgram * pProgramSomething = CreateProgram(VertexShaderSourceSomething, FragmentShaderSource);
 
     unsigned int textureContainer = LoadTexture("..\\media\\textures\\container.jpg");
     unsigned int textureMinion = LoadTexture("..\\media\\textures\\minion.png");
@@ -278,7 +279,7 @@ int main()
         float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
         float scale = (sin(timeValue * 0.2f)*0.5f) + 0.0f;
 
-        glUseProgram(shaderProgram);
+        pProgram->Use();
         
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textureContainer);
@@ -295,35 +296,22 @@ int main()
 
             glm::mat4 matWorldProjection = matProjection * matWorld;
 
-            int combinedTrasLocation = glGetUniformLocation(shaderProgram, "uCombinedTransform");
-            glUniformMatrix4fv(combinedTrasLocation, 1, false, glm::value_ptr(matWorldProjection));
-
-            int worldMatLocation = glGetUniformLocation(shaderProgram, "uWorldMatrix");
-            glUniformMatrix4fv(worldMatLocation, 1, false, glm::value_ptr(matWorld));
-
             glm::mat4 matView = glm::mat4(1.0f);
             matView = glm::lookAt(g_vCameraPos, g_vCameraPos + g_vCameraFront, g_vCameraUp);
 
-            int viewMatLocation = glGetUniformLocation(shaderProgram, "uViewMatrix");
-            glUniformMatrix4fv(viewMatLocation, 1, false, glm::value_ptr(matView));
+            pProgram->SetUniformMatrix("uCombinedTransform", matWorldProjection);
+            pProgram->SetUniformMatrix("uWorldMatrix", matWorld);
+            pProgram->SetUniformMatrix("uViewMatrix", matView);
+            pProgram->SetUniformMatrix("uProjectionMatrix", matProjection);
 
-            int projectionMatLocation = glGetUniformLocation(shaderProgram, "uProjectionMatrix");
-            glUniformMatrix4fv(projectionMatLocation, 1, false, glm::value_ptr(matProjection));
+            pProgram->SetUniformFloat("uScale", scale);
 
-            int scaleLocation = glGetUniformLocation(shaderProgram, "uScale");
-            glUniform1f(scaleLocation, scale);
+            pProgram->SetUniformColor("uColor", glm::vec3(0.0f, greenValue, 1.0f));
+            pProgram->SetUniformColor("uOffset", glm::vec3(0.0f, 0.0f, 0.0f));
+            
 
-            int colorLocation = glGetUniformLocation(shaderProgram, "uColor");
-            glUniform3f(colorLocation, 0.0f, greenValue, 1.0f);
-
-            int offsetLocation = glGetUniformLocation(shaderProgram, "uOffset");
-            glUniform3f(offsetLocation, 0.0f, 0.0f, 0.0f);
-
-            int texContainerLocation = glGetUniformLocation(shaderProgram, "texContainer");
-            glUniform1i(texContainerLocation, 0);
-
-            int texMinionLocation = glGetUniformLocation(shaderProgram, "texMinion");
-            glUniform1i(texMinionLocation, 1);
+            pProgram->SetUniformInt("texContainer", 0);
+            pProgram->SetUniformInt("texMinion", 1);
         }
         pCubeMesh->Render();
         {
@@ -332,8 +320,7 @@ int main()
             matWorld = glm::rotate(matWorld, scale * 5.0f, glm::vec3(1.0f, 1.0f, 0.0f));
             //matWorld = glm::scale(matWorld, glm::vec3(scale*2.0, scale*2.0f, 1.0f));
 
-            int worldMatLocation = glGetUniformLocation(shaderProgram, "uWorldMatrix");
-            glUniformMatrix4fv(worldMatLocation, 1, false, glm::value_ptr(matWorld));
+            pProgram->SetUniformMatrix("uWorldMatrix", matWorld);
         }
         pCubeMesh->Render();
         /*
@@ -410,29 +397,9 @@ unsigned int CreateFragmentShader(const char* FragmentShaderSource)
     return fragmentShader;
 }
 
-unsigned int CreateProgram(const char* VertexShaderSource, const char* FragmentShaderSource)
+CProgram * CreateProgram(const char* VertexShaderSource, const char* FragmentShaderSource)
 {
-    unsigned int vertexShader = CreateVertexShader(VertexShaderSource);
-    unsigned int fragmentShader = CreateFragmentShader(FragmentShaderSource);
-
-    unsigned int shaderProgram;
-    shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-    int  success;
-    char infoLog[512];
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success)
-    {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cout << "ERROR::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-    }
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-
-    return shaderProgram;
+   return CProgram::CreateProgram(VertexShaderSource, FragmentShaderSource);
 }
 
 void RenderCompactProfile()
