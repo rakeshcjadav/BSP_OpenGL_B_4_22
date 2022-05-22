@@ -1,10 +1,10 @@
-#include"Mesh.h"
+#include"MeshRenderer.h"
 #include"glad/glad.h"
 #include<GLFW\glfw3.h>
 
-CMesh* CMesh::CreateMesh(const SMeshData & pMeshData)
+CMeshRenderer* CMeshRenderer::CreateMesh(const SMeshData & pMeshData)
 {
-    CMesh* pMesh = new CMesh();
+    CMeshRenderer* pMesh = new CMeshRenderer();
     if (!pMesh->LoadPrivate(pMeshData))
     {
         pMesh->Destroy();
@@ -13,23 +13,23 @@ CMesh* CMesh::CreateMesh(const SMeshData & pMeshData)
     return pMesh;
 }
 
-void CMesh::Destroy()
+void CMeshRenderer::Destroy()
 {
     delete this;
 }
 
-void CMesh::Render()
+void CMeshRenderer::Render()
 {
     glBindVertexArray(m_idMesh);
     glDrawElements(GL_TRIANGLE_STRIP, m_nIndices, GL_UNSIGNED_INT, 0); // If you have EBOs defined
 }
 
-CMesh::CMesh()
+CMeshRenderer::CMeshRenderer()
 {
 
 }
 
-bool CMesh::LoadPrivate(const SMeshData & pMeshData)
+bool CMeshRenderer::LoadPrivate(const SMeshData & pMeshData)
 {
     glGenVertexArrays(1, &m_idMesh);
     glBindVertexArray(m_idMesh);

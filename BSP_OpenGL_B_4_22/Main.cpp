@@ -3,15 +3,15 @@
 #include"glad/glad.h"
 #include<GLFW\glfw3.h>
 #include"GLM.h"
-#include"Mesh.h"
+#include"MeshRenderer.h"
 #include"Program.h"
 #include"Texture.h"
 
 using namespace std;
 
-CMesh* CreateMesh(const SMeshData& meshData)
+CMeshRenderer* CreateMesh(const SMeshData& meshData)
 {
-    return CMesh::CreateMesh(meshData);
+    return CMeshRenderer::CreateMesh(meshData);
 }
 
 CProgram* CreateProgram(const char* VertexShaderSource, const char* FragmentShaderSource)
@@ -26,8 +26,8 @@ CTexture* LoadTexture(std::string filePath)
 
 struct SScene
 {
-    CMesh* pPlaneMesh;
-    CMesh* pCubeMesh;
+    CMeshRenderer* pPlaneMesh;
+    CMeshRenderer* pCubeMesh;
     CProgram* pProgram;
     CTexture* pTextureContainer;
     CTexture* pTextureMinion;
@@ -111,7 +111,6 @@ void GLMPractice()
     std::cin >> i;
 }
 
-
 float g_fScale = 1.0f;
 glm::vec3 g_vCameraPos = glm::vec3(0.0f, 0.0f, 10.0f);
 glm::vec3 g_vCameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -120,8 +119,6 @@ bool g_bLookAround = false;
 bool g_bfirstMouse = true;
 double lastX, lastY;
 float yaw = -90.0f, pitch = 0.0f;
-
-
 
 int main()
 {
@@ -172,75 +169,7 @@ int main()
     mainScene.pPlaneMesh = CreateMesh(SMeshData(SMeshData::MESH_TYPE::PLANE_MESH));
     mainScene.pCubeMesh = CreateMesh(SMeshData(SMeshData::MESH_TYPE::CUBE_MESH));
 
-    const char* VertexShaderSource = 
-        "#version 330 core\n"
-        "layout(location = 0) in vec3 aPosition;\n"
-        "layout(location = 1) in vec2 aTexCoord; // UV \n"
-        "layout(location = 2) in int colorID;\n"
-
-        "uniform float uScale;\n"
-        "uniform vec3 uOffset;\n"
-
-        "out vec2 outUV;\n"
-        "flat out int outColorID;\n"
-
-        "uniform mat4 uCombinedTransform;\n"
-        "uniform mat4 uWorldMatrix;\n"
-        "uniform mat4 uViewMatrix;\n"
-        "uniform mat4 uProjectionMatrix;\n"
-
-        "void main()\n"
-        "{\n"
-        "    vec4 vertexPos = uProjectionMatrix * uViewMatrix * uWorldMatrix * vec4(aPosition, 1.0);\n"
-        "    gl_Position = vertexPos;\n"
-        "    //gl_Position = vec4(aPosition*vec3(uScale) + uOffset, 1.0);\n"
-        "    outUV = aTexCoord;\n"
-        "    outColorID = colorID;\n"
-        "}\n";
-
-    const char* VertexShaderSourceSomething =
-        "#version 330 core\n"
-        "layout(location = 0) in vec3 aPosition;\n"
-
-        "uniform vec3 uOffset;\n"
-
-        "void main()\n"
-        "{\n"
-        "    gl_Position = vec4(aPosition + uOffset.yxz, 1.0);\n"
-        "}\n";
-
-    const char* FragmentShaderSource =
-        "#version 330 core\n"
-        "out vec4 FragColor;\n"
-
-        "in vec2 outUV;\n"
-        "flat in int outColorID;\n"
-
-        "uniform sampler2D texContainer;\n"
-        "uniform sampler2D texMinion;\n"
-
-        "uniform vec3 uColor;\n"
-
-        "const vec3 colors[6] = vec3[](\n"
-            "vec3(1.0f, 0.0f, 0.0f),\n"
-            "vec3(0.0f, 1.0f, 0.0f),\n"
-            "vec3(0.0f, 0.0f, 1.0f),\n"
-            "vec3(1.0f, 1.0f, 0.0f),\n"
-            "vec3(0.0f, 1.0f, 1.0f),\n"
-            "vec3(1.0f, 0.0f, 1.0f)\n"
-        ");\n"
-
-        "void main()\n"
-        "{\n"
-        "    vec4 colorContainer = texture(texContainer, outUV);\n"
-        "    vec4 colorMinion = texture(texMinion, outUV);\n"
-        "    vec3 color = colorMinion.rgb * colorMinion.a + colorContainer.rgb * (1 - colorMinion.a);\n"
-        "    FragColor = vec4(color.rgb, colorContainer.a);\n"
-        "    //FragColor = vec4(colors[outColorID], 1.0);\n"
-        "}\n";
-
     mainScene.pProgram = CreateProgram("..\\media\\shaders\\vertex_shader.glsl", "..\\media\\shaders\\fragment_shader.glsl");
-    //CProgram * pProgramSomething = CreateProgram(VertexShaderSourceSomething, FragmentShaderSource);
 
     mainScene.pTextureContainer = LoadTexture("..\\media\\textures\\container.jpg");
     mainScene.pTextureMinion = LoadTexture("..\\media\\textures\\minion.png");

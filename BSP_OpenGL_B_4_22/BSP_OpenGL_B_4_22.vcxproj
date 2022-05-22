@@ -144,7 +144,7 @@
   <ItemGroup>
     <ClCompile Include="glad\glad.c" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="MeshRenderer.cpp" />
     <ClCompile Include="Program.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Texture.cpp" />
@@ -153,7 +153,7 @@
     <ClInclude Include="glad\glad.h" />
     <ClInclude Include="glad\khrplatform.h" />
     <ClInclude Include="GLM.h" />
-    <ClInclude Include="Mesh.h" />
+    <ClInclude Include="MeshRenderer.h" />
     <ClInclude Include="Program.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Texture.h" />
@@ -162,8 +162,8 @@
     <Text Include="Recording.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\media\shaders\fragment_shader.glsl" />
-    <None Include="..\media\shaders\vertex_shader.glsl" />
+    <None Include="..\media\shaders\fragment_shader.frag" />
+    <None Include="..\media\shaders\vertex_shader.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

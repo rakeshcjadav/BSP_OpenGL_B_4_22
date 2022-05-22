@@ -7,14 +7,14 @@
 struct SMeshData;
 struct SVertex;
 
-class CMesh
+class CMeshRenderer
 {
 public:
-    static CMesh* CreateMesh(const SMeshData & pMeshData);
+    static CMeshRenderer* CreateMesh(const SMeshData & pMeshData);
     void Destroy();
     void Render();
 protected:
-    CMesh();
+    CMeshRenderer();
     bool LoadPrivate(const SMeshData & pMeshData);
 private:
     unsigned int m_idMesh;
