@@ -1,12 +1,14 @@
 #include"Shader.h"
 #include<iostream>
+#include<fstream>
+#include<sstream>
 #include"glad/glad.h"
 #include<GLFW\glfw3.h>
 
-CShader* CShader::CreateShader(CShader::SHADER_TYPE type, const char* shaderSource)
+CShader* CShader::CreateShader(CShader::SHADER_TYPE type, const char* filePath)
 {
     CShader* pShader = new CShader();
-    if (!pShader->LoadPrivate(type, shaderSource))
+    if (!pShader->LoadPrivate(type, filePath))
     {
         pShader->Destroy();
         pShader = nullptr;
@@ -35,7 +37,7 @@ CShader::~CShader()
     glDeleteShader(m_idShader);
 }
 
-bool CShader::LoadPrivate(CShader::SHADER_TYPE type, const char* shaderSource)
+bool CShader::LoadPrivate(CShader::SHADER_TYPE type, const char* filePath)
 {
     std::string shaderType = "";
     if (type == SHADER_TYPE::VERTEX_SHADER)
@@ -53,7 +55,25 @@ bool CShader::LoadPrivate(CShader::SHADER_TYPE type, const char* shaderSource)
         return false;
     }
 
-    glShaderSource(m_idShader, 1, &shaderSource, NULL);
+    std::ifstream inFile(filePath, std::ios::in);
+    if (!inFile.is_open())
+    {
+        std::cout << "ERROR::SHADER::" << shaderType << "::LOADING_FAILED:: " << filePath << std::endl;
+        glDeleteShader(m_idShader);
+        return false;
+    }
+
+    std::string line;
+    std::string shaderSource;
+    while (std::getline(inFile, line))
+    {
+        shaderSource += line + "\n";
+    }
+    inFile.close();
+
+    const char* shader = shaderSource.c_str();
+
+    glShaderSource(m_idShader, 1, &shader, NULL);
     glCompileShader(m_idShader);
 
     int  success;

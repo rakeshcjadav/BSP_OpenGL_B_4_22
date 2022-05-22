@@ -239,7 +239,7 @@ int main()
         "    //FragColor = vec4(colors[outColorID], 1.0);\n"
         "}\n";
 
-    mainScene.pProgram = CreateProgram(VertexShaderSource, FragmentShaderSource);
+    mainScene.pProgram = CreateProgram("..\\media\\shaders\\vertex_shader.glsl", "..\\media\\shaders\\fragment_shader.glsl");
     //CProgram * pProgramSomething = CreateProgram(VertexShaderSourceSomething, FragmentShaderSource);
 
     mainScene.pTextureContainer = LoadTexture("..\\media\\textures\\container.jpg");
@@ -257,7 +257,6 @@ int main()
         float scale = (sin(timeValue * 0.2f)*0.5f) + 0.0f;
 
         Render(mainScene, 0, 0, width, height, scale);
-        Render(mainScene, width-width/4, 0, width / 4, width/4, scale);
 
         processInput(window);
 

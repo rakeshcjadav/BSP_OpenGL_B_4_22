@@ -65,4 +65,12 @@
       <Filter>Source Files</Filter>
     </Text>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\media\shaders\fragment_shader.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\media\shaders\vertex_shader.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
 </Project>

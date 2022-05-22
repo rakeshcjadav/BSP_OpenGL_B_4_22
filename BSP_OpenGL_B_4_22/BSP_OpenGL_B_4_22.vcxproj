@@ -161,6 +161,10 @@
   <ItemGroup>
     <Text Include="Recording.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\media\shaders\fragment_shader.glsl" />
+    <None Include="..\media\shaders\vertex_shader.glsl" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

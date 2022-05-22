@@ -11,13 +11,13 @@ public:
         FRAGMENT_SHADER
     };
 public:
-    static CShader* CreateShader(CShader::SHADER_TYPE type, const char* shaderSource);
+    static CShader* CreateShader(CShader::SHADER_TYPE type, const char* filePath);
     void Destroy();
     //unsigned int GetID();
 protected:
     CShader();
     ~CShader();
-    bool LoadPrivate(CShader::SHADER_TYPE type, const char* shaderSource);
+    bool LoadPrivate(CShader::SHADER_TYPE type, const char* filePath);
 private:
     unsigned int m_idShader;
 };
