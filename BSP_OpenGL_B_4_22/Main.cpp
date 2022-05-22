@@ -257,7 +257,7 @@ int main()
         float scale = (sin(timeValue * 0.2f)*0.5f) + 0.0f;
 
         Render(mainScene, 0, 0, width, height, scale);
-        //Render(mainScene, width/2, 0, width / 2, height, scale);
+        Render(mainScene, width-width/4, 0, width / 4, width/4, scale);
 
         processInput(window);
 
