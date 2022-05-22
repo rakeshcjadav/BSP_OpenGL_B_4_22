@@ -2,21 +2,15 @@
 #include<vector>
 #include"glad/glad.h"
 #include<GLFW\glfw3.h>
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/string_cast.hpp>
+#include"GLM.h"
+#include"Mesh.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include"stb_image.h"
 
 using namespace std;
 
-// Forward Declarations
-struct SMeshData;
-
-unsigned int CreateMesh(const SMeshData & meshData);
+CMesh * CreateMesh(const SMeshData & meshData);
 unsigned int CreateProgram(const char* VertexShaderSource, const char* FragmentShaderSource);
 void RenderCompactProfile();
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -26,32 +20,6 @@ void mouseButton_callback(GLFWwindow* window, int button, int action, int mods);
 
 void processInput(GLFWwindow * window);
 
-struct SVertex
-{
-    glm::vec3 position; // 3 floats = 3 * 4 bytes = 12 bytes
-    glm::vec2 uv; // 2 floats = 2 * 4 bytes = 8 bytes
-    int colorID; // 4 bytes
-
-    SVertex()
-    {
-        position = glm::zero<glm::vec3>();
-        uv = glm::zero<glm::vec2>();
-        colorID = 0;
-    }
-
-    SVertex(glm::vec3 _position, glm::vec2 _uv, int _colorID)
-    {
-        position = _position;
-        uv = _uv;
-        colorID = _colorID;
-    }
-};
-
-struct SMeshData
-{
-    std::vector<SVertex>        aVertices;
-    std::vector<unsigned int>   aIndices;
-};
 
 void GLMPractice()
 {  
@@ -223,69 +191,8 @@ int main()
     //glBlendFunc(GL_ONE, GL_ZERO); // Replace Blend
     glEnable(GL_DEPTH_TEST);
 
-    SMeshData planeMeshData;
-
-    planeMeshData.aVertices = {
-        {{-0.5f, -0.5f, 0.0f}, {-0.01f, -0.01f}, {0}},
-        {{-0.5f, 0.5f, 0.0f},  {-0.01f, 1.01f}, {0}},
-        {{ 0.5f, -0.5f, 0.0f}, {1.01f, -0.01f}, {0}},
-        {{ 0.5f, 0.5f, 0.0f},  {1.01f, 1.01f}, {0}}
-    };
-    /*
-    std::vector<SVertex> aVertices;
-    aVertices.push_back(SVertex(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec2(-0.01f, -0.01f)));
-    aVertices.push_back(SVertex(glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec2(-0.01f, 1.01f)));
-    aVertices.push_back(SVertex(glm::vec3(0.5f, -0.5f, 0.0f), glm::vec2(1.01f, -0.01f)));
-    aVertices.push_back(SVertex(glm::vec3(0.5f, 0.5f, 0.0f), glm::vec2(1.01f, 1.01f)));
-    */
-    planeMeshData.aIndices = { 0, 2, 1, 3 };
-
-    unsigned int planeMesh = CreateMesh(planeMeshData);
-
-    std::vector<SVertex> vertices = {
-        // Front
-        {{-1.0f, -1.0f, 1.0f},  {0.0f, 0.0f}, {0}},
-        {{-1.0f,  1.0f, 1.0f},  {0.0f, 1.0f}, {0}},
-        {{ 1.0f, -1.0f, 1.0f},  {1.0f, 0.0f}, {0}},
-        {{ 1.0f,  1.0f, 1.0f},  {1.0f, 1.0f}, {0}},
-    };
-    std::vector<unsigned int> indices = { 0, 2, 1, 3 };
-
-    SMeshData cubeMeshData;
-    // Top
-    struct SAngle
-    {
-        float fAngle;
-        glm::vec3 vAxis;
-    };
-    std::vector<SAngle> aAngles = {
-        {{0.0f}, {1.0f, 0.0f, 0.0f}},    // Front
-        {{90.0f}, {1.0f, 0.0f, 0.0f}},   // Top
-        {{180.0f}, {1.0f, 0.0f, 0.0f}},  // Back
-        {{90.0f}, {-1.0f, 0.0f, 0.0f}},  // Bottom
-        {{90.0f}, {0.0f, 1.0f, 0.0f}},   // left
-        {{90.0f}, {0.0f, -1.0f, 0.0f}}   // right
-    };
-    
-    unsigned int face = 0;
-    for (const SAngle& angle : aAngles)
-    {
-        glm::mat4 matRotate = glm::mat4(1.0f);
-        matRotate = glm::rotate(matRotate, glm::radians(angle.fAngle), angle.vAxis);
-        for (SVertex vertex : vertices)
-        {
-            vertex.position = matRotate * glm::vec4(vertex.position, 1.0f);
-            vertex.colorID = face;
-            cubeMeshData.aVertices.push_back(vertex);
-        }
-        cubeMeshData.aIndices.push_back(indices[0] + 4 * face);
-        cubeMeshData.aIndices.push_back(indices[1] + 4 * face);
-        cubeMeshData.aIndices.push_back(indices[2] + 4 * face);
-        cubeMeshData.aIndices.push_back(indices[3] + 4 * face);
-        face++;
-    }
-    
-    unsigned int cubeMesh = CreateMesh(cubeMeshData);
+    CMesh * pPlaneMesh = CreateMesh(SMeshData(SMeshData::MESH_TYPE::PLANE_MESH));
+    CMesh * pCubeMesh = CreateMesh(SMeshData(SMeshData::MESH_TYPE::CUBE_MESH));
 
     const char* VertexShaderSource = 
         "#version 330 core\n"
@@ -418,11 +325,7 @@ int main()
             int texMinionLocation = glGetUniformLocation(shaderProgram, "texMinion");
             glUniform1i(texMinionLocation, 1);
         }
-        glBindVertexArray(cubeMesh);
-        {
-            //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);      // If you have just VBOs
-            glDrawElements(GL_TRIANGLE_STRIP, cubeMeshData.aIndices.size(), GL_UNSIGNED_INT, 0); // If you have EBOs defined
-        }
+        pCubeMesh->Render();
         {
             glm::mat4 matWorld = glm::mat4(1.0f);
             matWorld = glm::translate(matWorld, glm::vec3(3.0f, 0.0f, 0.0f));
@@ -432,11 +335,7 @@ int main()
             int worldMatLocation = glGetUniformLocation(shaderProgram, "uWorldMatrix");
             glUniformMatrix4fv(worldMatLocation, 1, false, glm::value_ptr(matWorld));
         }
-        glBindVertexArray(cubeMesh);
-        {
-            //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);      // If you have just VBOs
-            glDrawElements(GL_TRIANGLE_STRIP, cubeMeshData.aIndices.size(), GL_UNSIGNED_INT, 0); // If you have EBOs defined
-        }
+        pCubeMesh->Render();
         /*
         glUseProgram(shaderProgram);
 
@@ -472,42 +371,9 @@ int main()
     return 0;
 }
 
-unsigned int CreateMesh(const SMeshData& meshData)
+CMesh * CreateMesh(const SMeshData& meshData)
 {
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-    {
-        // Creating Vertex Buffer Object
-        unsigned int VBO;
-        glGenBuffers(1, &VBO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(SVertex) * meshData.aVertices.size(), &(meshData.aVertices.front()), GL_STATIC_DRAW);
-
-        // location 0, read 3 GL_FLOAT and jump(stride) 3 * sizeof(float) and offset is 0
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(SVertex), (void*)(0 * sizeof(float)));
-        glEnableVertexAttribArray(0);
-
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(SVertex), (void*)(sizeof(glm::vec3)));
-        glEnableVertexAttribArray(1);
-
-        glVertexAttribIPointer(2, 1, GL_INT, sizeof(SVertex), (void*)(sizeof(glm::vec3) + sizeof(glm::vec2)));
-        glEnableVertexAttribArray(2);
-
-        // location 2, read 3 GL_FLOAT and jump(stride) 4 * sizeof(float) and offset is 1
-        // glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(1 * sizeof(float)));
-        // glEnableVertexAttribArray(0);
-        //glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        unsigned int EBO;
-        glGenBuffers(1, &EBO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * meshData.aIndices.size(), &(meshData.aIndices.front()), GL_STATIC_DRAW);
-        //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    }
-    glBindVertexArray(0);
-
-    return VAO;
+    return CMesh::CreateMesh(meshData);
 }
 
 unsigned int CreateVertexShader(const char* VertexShaderSource)

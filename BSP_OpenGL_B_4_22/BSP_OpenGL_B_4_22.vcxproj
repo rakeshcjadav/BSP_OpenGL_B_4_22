@@ -149,6 +149,7 @@
   <ItemGroup>
     <ClInclude Include="glad\glad.h" />
     <ClInclude Include="glad\khrplatform.h" />
+    <ClInclude Include="GLM.h" />
     <ClInclude Include="Mesh.h" />
   </ItemGroup>
   <ItemGroup>
