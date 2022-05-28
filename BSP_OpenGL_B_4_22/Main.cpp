@@ -3,15 +3,19 @@
 #include"glad/glad.h"
 #include<GLFW\glfw3.h>
 #include"GLM.h"
-#include"MeshRenderer.h"
+#include"MeshFilter.h"
 #include"Program.h"
 #include"Texture.h"
+#include"Scene.h"
+#include"Object.h"
+#include"MeshRenderer.h"
+#include"Material.h"
 
 using namespace std;
 
-CMeshRenderer* CreateMesh(const SMeshData& meshData)
+CMeshFilter* CreateMesh(const SMeshData& meshData)
 {
-    return CMeshRenderer::CreateMesh(meshData);
+    return CMeshFilter::CreateMesh(meshData);
 }
 
 CProgram* CreateProgram(const char* VertexShaderSource, const char* FragmentShaderSource)
@@ -26,8 +30,8 @@ CTexture* LoadTexture(std::string filePath)
 
 struct SScene
 {
-    CMeshRenderer* pPlaneMesh;
-    CMeshRenderer* pCubeMesh;
+    CMeshFilter* pPlaneMesh;
+    CMeshFilter* pCubeMesh;
     CProgram* pProgram;
     CTexture* pTextureContainer;
     CTexture* pTextureMinion;
@@ -169,10 +173,34 @@ int main()
     mainScene.pPlaneMesh = CreateMesh(SMeshData(SMeshData::MESH_TYPE::PLANE_MESH));
     mainScene.pCubeMesh = CreateMesh(SMeshData(SMeshData::MESH_TYPE::CUBE_MESH));
 
-    mainScene.pProgram = CreateProgram("..\\media\\shaders\\vertex_shader.glsl", "..\\media\\shaders\\fragment_shader.glsl");
+    mainScene.pProgram = CreateProgram("..\\media\\shaders\\vertex_shader.vert", "..\\media\\shaders\\fragment_shader.frag");
 
     mainScene.pTextureContainer = LoadTexture("..\\media\\textures\\container.jpg");
     mainScene.pTextureMinion = LoadTexture("..\\media\\textures\\minion.png");
+
+    //CAssetManager::Instance().GetProgram("defaultProgram");
+
+    CProgram * pDefaultProgram = CreateProgram("..\\media\\shaders\\vertex_shader.vert", "..\\media\\shaders\\fragment_shader.frag");
+
+    CMeshFilter* pCubeMeshFilter = CMeshFilter::CreateMesh(SMeshData(SMeshData::MESH_TYPE::PLANE_MESH));
+    CMaterial* pCubeMaterial = CMaterial::CreateMaterial("CubeMaterial");
+    pCubeMaterial->SetProgram(pDefaultProgram);
+    pCubeMaterial->AddTexture(LoadTexture("..\\media\\textures\\container.jpg"));
+    pCubeMaterial->AddTexture(LoadTexture("..\\media\\textures\\minion.png"));
+
+    //CAssetManager::Instance().GetMeshRenderer("PLANE", "CubeMaterial");
+
+    CMeshRenderer* pMeshRenderer = CMeshRenderer::Create();
+    pMeshRenderer->SetMeshFilter(pCubeMeshFilter);
+    pMeshRenderer->SetMaterial(pCubeMaterial);
+
+    CObject* pCubeObject = CObject::CreateObject("Cube");
+    pCubeObject->SetMeshRenderer(pMeshRenderer);
+
+    // Scene
+    CScene* pScene = CScene::CreateScene("MainScene");
+    pScene->SetCamera(nullptr /* CCamera Object */);
+    pScene->AddObject(pCubeObject);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -185,7 +213,8 @@ int main()
         float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
         float scale = (sin(timeValue * 0.2f)*0.5f) + 0.0f;
 
-        Render(mainScene, 0, 0, width, height, scale);
+        pScene->Render(0, 0, width, height, scale);
+        //Render(mainScene, 0, 0, width, height, scale);
 
         processInput(window);
 
