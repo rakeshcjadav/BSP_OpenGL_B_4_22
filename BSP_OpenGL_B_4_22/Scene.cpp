@@ -19,8 +19,9 @@ void CScene::Destroy()
     delete this;
 }
 
-void CScene::AddObject(CObject* pObject)
+void CScene::AddObject(CObject* pObject, CTransform* pTransform)
 {
+    pObject->SetTransform(pTransform);
     m_aObjects.push_back(pObject);
 }
 

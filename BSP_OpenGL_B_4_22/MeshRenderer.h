@@ -7,6 +7,7 @@
 class CMeshFilter;
 class CMaterial;
 class CCamera;
+class CTransform;
 
 class CMeshRenderer
 {
@@ -15,7 +16,7 @@ public:
     void Destroy();
     void SetMeshFilter(CMeshFilter* pMeshFilter);
     void SetMaterial(CMaterial* pMaterial);
-    void Render(CCamera * pCamera);
+    void Render(CCamera * pCamera, CTransform* pTransform);
 private:
     CMeshRenderer();
     ~CMeshRenderer();

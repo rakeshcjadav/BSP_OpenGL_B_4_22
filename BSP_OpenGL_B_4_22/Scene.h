@@ -6,13 +6,14 @@
 //Forward Declaration
 class CObject;
 class CCamera;
+class CTransform;
 
 class CScene
 {
 public:
     static CScene* CreateScene(const char* strName);
     void Destroy();
-    void AddObject(CObject* pMeshFilter);
+    void AddObject(CObject* pMeshFilter, CTransform* pTransform);
     void RemoveObject(CObject* pMeshFilter);
     void SetCamera(CCamera* pCamera);
     void Render(int x, int y, int width, int height, float fValue);

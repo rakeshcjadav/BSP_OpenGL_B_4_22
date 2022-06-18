@@ -1,6 +1,7 @@
 #include"Object.h"
 #include"MeshRenderer.h"
 #include"Camera.h"
+#include"Transform.h"
 
 CObject* CObject::CreateObject(const char* strName)
 {
@@ -20,12 +21,21 @@ void CObject::Destroy()
 
 void CObject::SetMeshRenderer(CMeshRenderer* pMeshRenderer)
 {
+    if (m_pMeshRenderer)
+        m_pMeshRenderer->Destroy();
     m_pMeshRenderer = pMeshRenderer;
+}
+
+void CObject::SetTransform(CTransform* pTransform)
+{
+    if (m_pTransform)
+        m_pTransform->Destroy();
+    m_pTransform = pTransform;
 }
 
 void CObject::Render(CCamera* pCamera)
 {
-    m_pMeshRenderer->Render(pCamera);
+    m_pMeshRenderer->Render(pCamera, m_pTransform);
 }
 
 CObject::CObject(const char* strName)
@@ -41,5 +51,6 @@ CObject::~CObject()
 
 bool CObject::LoadPrivate(const char* strName)
 {
-    return true;
+    m_pTransform = CTransform::CreateTransform(glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f));
+    return !!m_pTransform;
 }

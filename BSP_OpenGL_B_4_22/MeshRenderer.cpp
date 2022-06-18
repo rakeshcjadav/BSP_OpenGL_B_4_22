@@ -2,6 +2,7 @@
 #include"MeshFilter.h"
 #include"Material.h"
 #include"Camera.h"
+#include"Transform.h"
 
 CMeshRenderer* CMeshRenderer::Create()
 {
@@ -29,9 +30,10 @@ void CMeshRenderer::SetMaterial(CMaterial* pMaterial)
     m_pMaterial = pMaterial;
 }
 
-void CMeshRenderer::Render(CCamera* pCamera)
+void CMeshRenderer::Render(CCamera* pCamera, CTransform* pTransform)
 {
     m_pMaterial->Use(pCamera);
+    m_pMaterial->SetUniformMatrix("uWorldMatrix", pTransform->GetTransformMatrix());
     m_pMeshFilter->Render();
 }
 

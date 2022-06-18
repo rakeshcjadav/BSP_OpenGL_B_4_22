@@ -11,6 +11,7 @@
 #include"MeshRenderer.h"
 #include"Material.h"
 #include"Camera.h"
+#include"Transform.h"
 
 using namespace std;
 
@@ -160,7 +161,8 @@ int main()
 
     CProgram * pDefaultProgram = CreateProgram("..\\media\\shaders\\vertex_shader.vert", "..\\media\\shaders\\fragment_shader.frag");
 
-    CMeshFilter* pCubeMeshFilter = CMeshFilter::CreateMesh(SMeshData(SMeshData::MESH_TYPE::PLANE_MESH));
+    CMeshFilter* pCubeMeshFilter = CMeshFilter::CreateMesh(SMeshData(SMeshData::MESH_TYPE::CUBE_MESH));
+    CMeshFilter* pPlaneMeshFilter = CMeshFilter::CreateMesh(SMeshData(SMeshData::MESH_TYPE::PLANE_MESH));
     CMaterial* pCubeMaterial = CMaterial::CreateMaterial("CubeMaterial");
     pCubeMaterial->SetProgram(pDefaultProgram);
     pCubeMaterial->AddTexture(LoadTexture("..\\media\\textures\\container.jpg"));
@@ -172,12 +174,20 @@ int main()
     pMeshRenderer->SetMeshFilter(pCubeMeshFilter);
     pMeshRenderer->SetMaterial(pCubeMaterial);
 
+    CMeshRenderer* pPlaneMeshRenderer = CMeshRenderer::Create();
+    pPlaneMeshRenderer->SetMeshFilter(pPlaneMeshFilter);
+    pPlaneMeshRenderer->SetMaterial(pCubeMaterial);
+
     CObject* pCubeObject = CObject::CreateObject("Cube");
     pCubeObject->SetMeshRenderer(pMeshRenderer);
 
+    CObject* pPlaneObject = CObject::CreateObject("Plane");
+    pPlaneObject->SetMeshRenderer(pPlaneMeshRenderer);
+
     // Scene
     CScene* pScene = CScene::CreateScene("MainScene");
-    pScene->AddObject(pCubeObject);
+    pScene->AddObject(pCubeObject, CTransform::CreateTransform(glm::vec3(5.0f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(3.0f)));
+    pScene->AddObject(pPlaneObject, CTransform::CreateTransform(glm::vec3(-5.0f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(3.0f)));
 
     g_pCamera = CCamera::CreateCamera(width / (height * 1.0f), 60.0f, 0.1f, 100.0f);
     pScene->SetCamera(g_pCamera);
