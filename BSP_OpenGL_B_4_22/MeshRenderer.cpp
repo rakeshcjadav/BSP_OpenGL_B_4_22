@@ -1,6 +1,7 @@
 #include"MeshRenderer.h"
 #include"MeshFilter.h"
 #include"Material.h"
+#include"Camera.h"
 
 CMeshRenderer* CMeshRenderer::Create()
 {
@@ -28,9 +29,9 @@ void CMeshRenderer::SetMaterial(CMaterial* pMaterial)
     m_pMaterial = pMaterial;
 }
 
-void CMeshRenderer::Render()
+void CMeshRenderer::Render(CCamera* pCamera)
 {
-    m_pMaterial->Use();
+    m_pMaterial->Use(pCamera);
     m_pMeshFilter->Render();
 }
 

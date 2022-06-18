@@ -4,6 +4,7 @@
 
 // Forward 
 class CMeshRenderer;
+class CCamera;
 
 class CObject
 {
@@ -11,7 +12,7 @@ public:
     static CObject* CreateObject(const char* strName);
     void Destroy();
     void SetMeshRenderer(CMeshRenderer* pMeshFilter);
-    void Render();
+    void Render(CCamera* pCamera);
 protected:
     CObject(const char* strName);
     ~CObject();

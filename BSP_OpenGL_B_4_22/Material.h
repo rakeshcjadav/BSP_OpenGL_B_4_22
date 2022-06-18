@@ -5,6 +5,7 @@
 
 class CProgram;
 class CTexture;
+class CCamera;
 
 class CMaterial
 {
@@ -14,7 +15,7 @@ public:
     void SetProgram(CProgram* pProgram);
     void AddTexture(CTexture* pTexture);
     void RemoveTexture(CTexture* pTexture);
-    void Use();
+    void Use(CCamera* pCamera);
 private:
     CMaterial(const char* strName);
     ~CMaterial();

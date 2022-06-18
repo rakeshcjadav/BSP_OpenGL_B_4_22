@@ -6,6 +6,7 @@
 //Forward Declaration
 class CMeshFilter;
 class CMaterial;
+class CCamera;
 
 class CMeshRenderer
 {
@@ -14,7 +15,7 @@ public:
     void Destroy();
     void SetMeshFilter(CMeshFilter* pMeshFilter);
     void SetMaterial(CMaterial* pMaterial);
-    void Render();
+    void Render(CCamera * pCamera);
 private:
     CMeshRenderer();
     ~CMeshRenderer();

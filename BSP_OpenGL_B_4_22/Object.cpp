@@ -1,5 +1,6 @@
 #include"Object.h"
 #include"MeshRenderer.h"
+#include"Camera.h"
 
 CObject* CObject::CreateObject(const char* strName)
 {
@@ -22,9 +23,9 @@ void CObject::SetMeshRenderer(CMeshRenderer* pMeshRenderer)
     m_pMeshRenderer = pMeshRenderer;
 }
 
-void CObject::Render()
+void CObject::Render(CCamera* pCamera)
 {
-    m_pMeshRenderer->Render();
+    m_pMeshRenderer->Render(pCamera);
 }
 
 CObject::CObject(const char* strName)

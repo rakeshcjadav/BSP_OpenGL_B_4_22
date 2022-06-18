@@ -10,6 +10,7 @@
 #include"Object.h"
 #include"MeshRenderer.h"
 #include"Material.h"
+#include"Camera.h"
 
 using namespace std;
 
@@ -27,18 +28,6 @@ CTexture* LoadTexture(std::string filePath)
 {
     return CTexture::CreateTexture(filePath.c_str());
 }
-
-struct SScene
-{
-    CMeshFilter* pPlaneMesh;
-    CMeshFilter* pCubeMesh;
-    CProgram* pProgram;
-    CTexture* pTextureContainer;
-    CTexture* pTextureMinion;
-
-};
-
-void Render(SScene scene, int x, int y, int width, int height, float fValue);
 
 void RenderCompactProfile();
 
@@ -116,13 +105,11 @@ void GLMPractice()
 }
 
 float g_fScale = 1.0f;
-glm::vec3 g_vCameraPos = glm::vec3(0.0f, 0.0f, 10.0f);
-glm::vec3 g_vCameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 g_vCameraUp = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f));
 bool g_bLookAround = false;
 bool g_bfirstMouse = true;
 double lastX, lastY;
 float yaw = -90.0f, pitch = 0.0f;
+CCamera* g_pCamera = nullptr;
 
 int main()
 {
@@ -168,17 +155,8 @@ int main()
     //glBlendFunc(GL_ONE, GL_ZERO); // Replace Blend
     glEnable(GL_DEPTH_TEST);
 
-    SScene mainScene;
-
-    mainScene.pPlaneMesh = CreateMesh(SMeshData(SMeshData::MESH_TYPE::PLANE_MESH));
-    mainScene.pCubeMesh = CreateMesh(SMeshData(SMeshData::MESH_TYPE::CUBE_MESH));
-
-    mainScene.pProgram = CreateProgram("..\\media\\shaders\\vertex_shader.vert", "..\\media\\shaders\\fragment_shader.frag");
-
-    mainScene.pTextureContainer = LoadTexture("..\\media\\textures\\container.jpg");
-    mainScene.pTextureMinion = LoadTexture("..\\media\\textures\\minion.png");
-
     //CAssetManager::Instance().GetProgram("defaultProgram");
+
 
     CProgram * pDefaultProgram = CreateProgram("..\\media\\shaders\\vertex_shader.vert", "..\\media\\shaders\\fragment_shader.frag");
 
@@ -199,8 +177,10 @@ int main()
 
     // Scene
     CScene* pScene = CScene::CreateScene("MainScene");
-    pScene->SetCamera(nullptr /* CCamera Object */);
     pScene->AddObject(pCubeObject);
+
+    g_pCamera = CCamera::CreateCamera(width / (height * 1.0f), 60.0f, 0.1f, 100.0f);
+    pScene->SetCamera(g_pCamera);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -223,54 +203,11 @@ int main()
         glfwPollEvents();
     }
 
+    g_pCamera->Destroy();
+    pScene->Destroy();
+
     glfwTerminate();
     return 0;
-}
-
-void Render(SScene scene, int x, int y, int width, int height, float fValue)
-{
-    glViewport(x, y, width, height);
-    scene.pProgram->Use();
-
-    scene.pTextureContainer->Bind(0);
-    scene.pTextureMinion->Bind(1);
-    {
-        glm::mat4 matWorld = glm::mat4(1.0f);
-        matWorld = glm::translate(matWorld, glm::vec3(0.0f, 0.0f, 0.0f));
-        //matWorld = glm::rotate(matWorld, scale*5.0f, glm::vec3(1.0f, 1.0f, 0.0f));
-        //matWorld = glm::scale(matWorld, glm::vec3(scale*2.0, scale*2.0f, 1.0f));
-
-        glm::mat4 matProjection;
-        matProjection = glm::perspective(glm::radians(60.0f), width / (height * 1.0f), 0.1f, 100.0f);
-
-        glm::mat4 matWorldProjection = matProjection * matWorld;
-
-        glm::mat4 matView = glm::mat4(1.0f);
-        matView = glm::lookAt(g_vCameraPos, g_vCameraPos + g_vCameraFront, g_vCameraUp);
-
-        scene.pProgram->SetUniformMatrix("uCombinedTransform", matWorldProjection);
-        scene.pProgram->SetUniformMatrix("uWorldMatrix", matWorld);
-        scene.pProgram->SetUniformMatrix("uViewMatrix", matView);
-        scene.pProgram->SetUniformMatrix("uProjectionMatrix", matProjection);
-
-        scene.pProgram->SetUniformFloat("uScale", fValue);
-
-        scene.pProgram->SetUniformColor("uColor", glm::vec3(0.0f, 0.0f, 1.0f));
-        scene.pProgram->SetUniformColor("uOffset", glm::vec3(0.0f, 0.0f, 0.0f));
-
-        scene.pProgram->SetUniformInt("texContainer", 0);
-        scene.pProgram->SetUniformInt("texMinion", 1);
-    }
-    scene.pCubeMesh->Render();
-    {
-        glm::mat4 matWorld = glm::mat4(1.0f);
-        matWorld = glm::translate(matWorld, glm::vec3(3.0f, 0.0f, 0.0f));
-        matWorld = glm::rotate(matWorld, fValue * 5.0f, glm::vec3(1.0f, 1.0f, 0.0f));
-        //matWorld = glm::scale(matWorld, glm::vec3(scale*2.0, scale*2.0f, 1.0f));
-
-        scene.pProgram->SetUniformMatrix("uWorldMatrix", matWorld);
-    }
-    scene.pCubeMesh->Render();
 }
 
 void RenderCompactProfile()
@@ -335,7 +272,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
     direction.y = sin(glm::radians(pitch));
     direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-    g_vCameraFront = glm::normalize(direction);
+    g_pCamera->SetDirection(glm::normalize(direction));
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -362,14 +299,13 @@ void processInput(GLFWwindow* window)
 {
     const float cameraSpeed = 0.05f; // adjust accordingly
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        g_vCameraPos += cameraSpeed * g_vCameraFront;
+        g_pCamera->MoveForward(cameraSpeed);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        g_vCameraPos -= cameraSpeed * g_vCameraFront;
+        g_pCamera->MoveForward(-cameraSpeed);
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        g_vCameraPos -= glm::normalize(glm::cross(g_vCameraFront, g_vCameraUp)) * cameraSpeed;
+        g_pCamera->MoveRight(-cameraSpeed);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        g_vCameraPos += glm::normalize(glm::cross(g_vCameraFront, g_vCameraUp)) * cameraSpeed;
-
+        g_pCamera->MoveRight(cameraSpeed);
 
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
     {

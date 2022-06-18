@@ -1,6 +1,7 @@
 #include"Material.h"
 #include"Program.h"
 #include"Texture.h"
+#include"Camera.h"
 #include"GLM.h"
 
 CMaterial* CMaterial::CreateMaterial(const char* strName)
@@ -34,28 +35,16 @@ void CMaterial::RemoveTexture(CTexture* pTexture)
     m_aTextures.remove(pTexture);
 }
 
-
-extern glm::vec3 g_vCameraPos;
-extern glm::vec3 g_vCameraFront;
-extern glm::vec3 g_vCameraUp;
-
-
-void CMaterial::Use()
+void CMaterial::Use(CCamera* pCamera)
 {
     m_pProgram->Use();
 
     glm::mat4 matWorld = glm::mat4(1.0f);
     matWorld = glm::translate(matWorld, glm::vec3(0.0f, 0.0f, 0.0f));
-    //matWorld = glm::rotate(matWorld, scale*5.0f, glm::vec3(1.0f, 1.0f, 0.0f));
-    //matWorld = glm::scale(matWorld, glm::vec3(scale*2.0, scale*2.0f, 1.0f));
-
-    glm::mat4 matProjection;
-    matProjection = glm::perspective(glm::radians(60.0f), 1280 / (720 * 1.0f), 0.1f, 100.0f);
-
+    
+    glm::mat4 matProjection = pCamera->GetProjectionMatrix();
     glm::mat4 matWorldProjection = matProjection * matWorld;
-
-    glm::mat4 matView = glm::mat4(1.0f);
-    matView = glm::lookAt(g_vCameraPos, g_vCameraPos + g_vCameraFront, g_vCameraUp);
+    glm::mat4 matView = pCamera->GetViewMatrix();
 
     m_pProgram->SetUniformMatrix("uCombinedTransform", matWorldProjection);
     m_pProgram->SetUniformMatrix("uWorldMatrix", matWorld);

@@ -39,7 +39,7 @@ void CScene::Render(int x, int y, int width, int height, float fValue)
     glViewport(x, y, width, height);
     for (CObject* pObject : m_aObjects)
     {
-        pObject->Render();
+        pObject->Render(m_pCamera);
     }
 }
 
