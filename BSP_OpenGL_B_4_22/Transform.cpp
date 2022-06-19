@@ -22,6 +22,12 @@ void CTransform::SetPosition(glm::vec3 pos)
     UpdateTransform();
 }
 
+void CTransform::SetRotation(glm::vec3 rotation)
+{
+    m_vRotation = rotation;
+    UpdateTransform();
+}
+
 glm::mat4 CTransform::GetTransformMatrix()
 {
     return m_vTransform;

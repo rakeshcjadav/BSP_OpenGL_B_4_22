@@ -8,6 +8,7 @@ public:
     static CTransform* CreateTransform(glm::vec3 pos, glm::vec3 rotation, glm::vec3 scale);
     void Destroy();
     void SetPosition(glm::vec3 pos);
+    void SetRotation(glm::vec3 rotation);
     glm::mat4 GetTransformMatrix();
 private:
     CTransform();

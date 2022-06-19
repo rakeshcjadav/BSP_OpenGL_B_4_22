@@ -148,8 +148,10 @@ int main()
 
     // TODO: Revisit once triangle is drawn
     
-    //glEnable(GL_CULL_FACE);
-    //glCullFace(GL_BACK);
+    glEnable(GL_CULL_FACE);
+    glFrontFace(GL_CCW); // Counter Clockwise
+    //glFrontFace(GL_CW); // Clockwise
+    glCullFace(GL_BACK);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Alpha Blend
@@ -157,7 +159,6 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
     //CAssetManager::Instance().GetProgram("defaultProgram");
-
 
     CProgram * pDefaultProgram = CreateProgram("..\\media\\shaders\\vertex_shader.vert", "..\\media\\shaders\\fragment_shader.frag");
 
@@ -184,10 +185,17 @@ int main()
     CObject* pPlaneObject = CObject::CreateObject("Plane");
     pPlaneObject->SetMeshRenderer(pPlaneMeshRenderer);
 
+    CObject* pLightCubeObject = CObject::CreateObject("LightCube");
+    pLightCubeObject->SetMeshRenderer(pMeshRenderer);
+
     // Scene
     CScene* pScene = CScene::CreateScene("MainScene");
-    pScene->AddObject(pCubeObject, CTransform::CreateTransform(glm::vec3(5.0f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(3.0f)));
-    pScene->AddObject(pPlaneObject, CTransform::CreateTransform(glm::vec3(-5.0f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(3.0f)));
+    pScene->AddObject(pCubeObject, CTransform::CreateTransform(glm::vec3(5.0f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(2.0f)));
+    pScene->AddObject(pPlaneObject, CTransform::CreateTransform(glm::vec3(-5.0f, -2.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 0.0f), glm::vec3(100.0f, 100.0f, 1.0f)));
+
+    pScene->AddObject(pLightCubeObject, CTransform::CreateTransform(glm::vec3(0.0f, 3.0f, 3.0f), glm::vec3(0.0f), glm::vec3(0.20f)));
+
+    CTransform * pCubeTransform = pCubeObject->GetTransform();
 
     g_pCamera = CCamera::CreateCamera(width / (height * 1.0f), 60.0f, 0.1f, 100.0f);
     pScene->SetCamera(g_pCamera);
@@ -201,7 +209,10 @@ int main()
 
         float timeValue = (float)glfwGetTime();
         float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
-        float scale = (sin(timeValue * 0.2f)*0.5f) + 0.0f;
+        float scale = (sin(timeValue)*2.0f);
+
+        //pCubeTransform->SetPosition(glm::vec3(0.0f, scale, 0.0f));
+        pCubeTransform->SetRotation(glm::vec3(timeValue*10.0f, timeValue*20.0f, 0.0f));
 
         pScene->Render(0, 0, width, height, scale);
         //Render(mainScene, 0, 0, width, height, scale);

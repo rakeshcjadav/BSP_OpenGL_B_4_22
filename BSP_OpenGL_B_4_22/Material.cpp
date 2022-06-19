@@ -46,6 +46,7 @@ void CMaterial::Use(CCamera* pCamera)
     glm::mat4 matProjection = pCamera->GetProjectionMatrix();
     glm::mat4 matView = pCamera->GetViewMatrix();
 
+    m_pProgram->SetUniformColor("uCameraPos", pCamera->GetPosition());
     m_pProgram->SetUniformMatrix("uViewMatrix", matView);
     m_pProgram->SetUniformMatrix("uProjectionMatrix", matProjection);
 

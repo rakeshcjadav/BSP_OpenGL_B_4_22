@@ -14,6 +14,7 @@ public:
     void Destroy();
     void SetMeshRenderer(CMeshRenderer* pMeshFilter);
     void SetTransform(CTransform* pTransform);
+    CTransform* GetTransform();
     void Render(CCamera* pCamera);
 protected:
     CObject(const char* strName);

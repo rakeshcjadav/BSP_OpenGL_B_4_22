@@ -33,6 +33,11 @@ void CObject::SetTransform(CTransform* pTransform)
     m_pTransform = pTransform;
 }
 
+CTransform* CObject::GetTransform()
+{
+    return m_pTransform;
+}
+
 void CObject::Render(CCamera* pCamera)
 {
     m_pMeshRenderer->Render(pCamera, m_pTransform);
