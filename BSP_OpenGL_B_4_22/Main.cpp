@@ -12,6 +12,7 @@
 #include"Material.h"
 #include"Camera.h"
 #include"Transform.h"
+#include"PointLight.h"
 
 using namespace std;
 
@@ -160,45 +161,78 @@ int main()
 
     //CAssetManager::Instance().GetProgram("defaultProgram");
 
-    CProgram * pDefaultProgram = CreateProgram("..\\media\\shaders\\vertex_shader.vert", "..\\media\\shaders\\fragment_shader.frag");
+    CProgram * pUnlitProgram = CreateProgram("..\\media\\shaders\\vertex_shader.vert", "..\\media\\shaders\\fragment_shader.frag");
+    CProgram* pLitProgram = CreateProgram("..\\media\\shaders\\vertex_shader_lit.vert", "..\\media\\shaders\\fragment_shader_lit.frag");
 
     CMeshFilter* pCubeMeshFilter = CMeshFilter::CreateMesh(SMeshData(SMeshData::MESH_TYPE::CUBE_MESH));
     CMeshFilter* pPlaneMeshFilter = CMeshFilter::CreateMesh(SMeshData(SMeshData::MESH_TYPE::PLANE_MESH));
-    CMaterial* pCubeMaterial = CMaterial::CreateMaterial("CubeMaterial");
-    pCubeMaterial->SetProgram(pDefaultProgram);
-    pCubeMaterial->AddTexture(LoadTexture("..\\media\\textures\\container.jpg"));
-    pCubeMaterial->AddTexture(LoadTexture("..\\media\\textures\\minion.png"));
+
+    SMaterialProperties material = { {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 256.0f };
+
+    CMaterial* pUnlitMaterial = CMaterial::CreateMaterial("UnlitMaterial", material);
+    pUnlitMaterial->SetProgram(pUnlitProgram);
+    pUnlitMaterial->AddTexture(LoadTexture("..\\media\\textures\\container.jpg"));
+    pUnlitMaterial->AddTexture(LoadTexture("..\\media\\textures\\minion.png"));
+
+    CMaterial* pLitMaterial = CMaterial::CreateMaterial("LitMaterial", material);
+    pLitMaterial->SetProgram(pLitProgram);
+    pLitMaterial->AddTexture(LoadTexture("..\\media\\textures\\container.jpg"));
+    pLitMaterial->AddTexture(LoadTexture("..\\media\\textures\\container2_specular.png"));
+
+    CMaterial* pLitMaterialCrate = CMaterial::CreateMaterial("LitMaterialCrate", material);
+    pLitMaterialCrate->SetProgram(pLitProgram);
+    pLitMaterialCrate->AddTexture(LoadTexture("..\\media\\textures\\container2.png"));
+    pLitMaterialCrate->AddTexture(LoadTexture("..\\media\\textures\\container2_specular.png"));
 
     //CAssetManager::Instance().GetMeshRenderer("PLANE", "CubeMaterial");
-
-    CMeshRenderer* pMeshRenderer = CMeshRenderer::Create();
-    pMeshRenderer->SetMeshFilter(pCubeMeshFilter);
-    pMeshRenderer->SetMaterial(pCubeMaterial);
-
-    CMeshRenderer* pPlaneMeshRenderer = CMeshRenderer::Create();
-    pPlaneMeshRenderer->SetMeshFilter(pPlaneMeshFilter);
-    pPlaneMeshRenderer->SetMaterial(pCubeMaterial);
-
-    CObject* pCubeObject = CObject::CreateObject("Cube");
-    pCubeObject->SetMeshRenderer(pMeshRenderer);
-
-    CObject* pPlaneObject = CObject::CreateObject("Plane");
-    pPlaneObject->SetMeshRenderer(pPlaneMeshRenderer);
-
-    CObject* pLightCubeObject = CObject::CreateObject("LightCube");
-    pLightCubeObject->SetMeshRenderer(pMeshRenderer);
-
     // Scene
     CScene* pScene = CScene::CreateScene("MainScene");
-    pScene->AddObject(pCubeObject, CTransform::CreateTransform(glm::vec3(5.0f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(2.0f)));
-    pScene->AddObject(pPlaneObject, CTransform::CreateTransform(glm::vec3(-5.0f, -2.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 0.0f), glm::vec3(100.0f, 100.0f, 1.0f)));
-
-    pScene->AddObject(pLightCubeObject, CTransform::CreateTransform(glm::vec3(0.0f, 3.0f, 3.0f), glm::vec3(0.0f), glm::vec3(0.20f)));
-
-    CTransform * pCubeTransform = pCubeObject->GetTransform();
+    CTransform* pCubeTransform = nullptr;
+    {
+        // Cube
+        CMeshRenderer* pMeshRenderer = CMeshRenderer::Create();
+        pMeshRenderer->SetMeshFilter(pCubeMeshFilter);
+        pMeshRenderer->SetMaterial(pLitMaterialCrate);
+        CObject* pCubeObject = CObject::CreateObject("Cube");
+        pCubeObject->SetMeshRenderer(pMeshRenderer);
+        pScene->AddObject(pCubeObject, CTransform::CreateTransform(glm::vec3(5.0f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(2.0f)));
+        pCubeTransform = pCubeObject->GetTransform();
+    }
+    {
+        // Cube 2
+        CMeshRenderer* pMeshRenderer = CMeshRenderer::Create();
+        pMeshRenderer->SetMeshFilter(pCubeMeshFilter);
+        pMeshRenderer->SetMaterial(pLitMaterialCrate);
+        CObject* pCubeObject = CObject::CreateObject("Cube 2");
+        pCubeObject->SetMeshRenderer(pMeshRenderer);
+        pScene->AddObject(pCubeObject, CTransform::CreateTransform(glm::vec3(-5.0f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(2.0f)));
+    }
+    {
+        // Ground plane
+        CMeshRenderer* pPlaneMeshRenderer = CMeshRenderer::Create();
+        pPlaneMeshRenderer->SetMeshFilter(pPlaneMeshFilter);
+        pPlaneMeshRenderer->SetMaterial(pUnlitMaterial);
+        CObject* pPlaneObject = CObject::CreateObject("Plane");
+        pPlaneObject->SetMeshRenderer(pPlaneMeshRenderer);
+        pScene->AddObject(pPlaneObject, CTransform::CreateTransform(glm::vec3(-5.0f, -2.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 0.0f), glm::vec3(100.0f, 100.0f, 1.0f)));
+    }
+    glm::vec3 lightPos(0.0f, 3.0f, 3.0f);
+    {
+        // Light cube
+        CMeshRenderer* pMeshRenderer = CMeshRenderer::Create();
+        pMeshRenderer->SetMeshFilter(pCubeMeshFilter);
+        pMeshRenderer->SetMaterial(pUnlitMaterial);
+        CObject* pLightCubeObject = CObject::CreateObject("LightCube");
+        pLightCubeObject->SetMeshRenderer(pMeshRenderer);
+        pScene->AddObject(pLightCubeObject, CTransform::CreateTransform(lightPos, glm::vec3(0.0f), glm::vec3(0.20f)));
+    }
 
     g_pCamera = CCamera::CreateCamera(width / (height * 1.0f), 60.0f, 0.1f, 100.0f);
     pScene->SetCamera(g_pCamera);
+
+    SAttenuationDef def = {1.0f, 0.027f, 0.0028f};
+    CPointLight* pPointLight = CPointLight::Create(lightPos, glm::vec3(1.0f, 1.0f, 1.0f), 0.1f, def);
+    pScene->SetLight(pPointLight);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -224,6 +258,7 @@ int main()
         glfwPollEvents();
     }
 
+    pPointLight->Destroy();
     g_pCamera->Destroy();
     pScene->Destroy();
 

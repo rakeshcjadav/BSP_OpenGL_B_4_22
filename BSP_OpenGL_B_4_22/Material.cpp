@@ -3,10 +3,10 @@
 #include"Texture.h"
 #include"Camera.h"
 
-CMaterial* CMaterial::CreateMaterial(const char* strName)
+CMaterial* CMaterial::CreateMaterial(const char* strName, SMaterialProperties& material)
 {
     CMaterial* pMat = new CMaterial(strName);
-    if (!pMat->LoadPrivate(strName))
+    if (!pMat->LoadPrivate(strName, material))
     {
         pMat->Destroy();
         pMat = nullptr;
@@ -27,6 +27,16 @@ void CMaterial::SetProgram(CProgram* pProgram)
 void CMaterial::SetUniformMatrix(const char* name, const glm::mat4& mat)
 {
     m_pProgram->SetUniformMatrix(name, mat);
+}
+
+void CMaterial::SetUniformFloat(const char* name, float fValue)
+{
+    m_pProgram->SetUniformFloat(name, fValue);
+}
+
+void CMaterial::SetUniformColor(const char* name, const glm::vec3& color)
+{
+    m_pProgram->SetUniformColor(name, color);
 }
 
 void CMaterial::AddTexture(CTexture* pTexture)
@@ -55,9 +65,14 @@ void CMaterial::Use(CCamera* pCamera)
     m_pProgram->SetUniformColor("uColor", glm::vec3(0.0f, 0.0f, 1.0f));
     m_pProgram->SetUniformColor("uOffset", glm::vec3(0.0f, 0.0f, 0.0f));
 
-    m_pProgram->SetUniformInt("texContainer", 0);
-    m_pProgram->SetUniformInt("texMinion", 1);
+    m_pProgram->SetUniformInt("texDiffuse", 0);
+    m_pProgram->SetUniformInt("texSpecular", 1);
 
+    // Material properties
+    m_pProgram->SetUniformColor("material.ambient", m_MaterialProperties.ambientColor);
+    m_pProgram->SetUniformColor("material.diffuse", m_MaterialProperties.diffuseColor);
+    m_pProgram->SetUniformColor("material.specular", m_MaterialProperties.specularColor);
+    m_pProgram->SetUniformFloat("material.shininess", m_MaterialProperties.shininess);
 
     unsigned int index = 0;
     for (CTexture* pTexture : m_aTextures)
@@ -77,7 +92,8 @@ CMaterial::~CMaterial()
     m_aTextures.clear();
 }
 
-bool CMaterial::LoadPrivate(const char* strName)
+bool CMaterial::LoadPrivate(const char* strName, SMaterialProperties& material)
 {
+    m_MaterialProperties = material;
     return true;
 }

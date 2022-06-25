@@ -2,6 +2,7 @@
 #include"Camera.h"
 #include"Object.h"
 #include"glad/glad.h"
+#include"PointLight.h"
 
 CScene* CScene::CreateScene(const char* strName)
 {
@@ -30,8 +31,17 @@ void CScene::RemoveObject(CObject* pObject)
     m_aObjects.remove(pObject);
 }
 
+void CScene::SetLight(CPointLight* pPointLight)
+{
+    if(m_pPointLight)
+        m_pPointLight->Destroy();
+    m_pPointLight = pPointLight;
+}
+
 void CScene::SetCamera(CCamera* pCamera)
 {
+    if (m_pCamera)
+        m_pCamera->Destroy();
     m_pCamera = pCamera;
 }
 
@@ -40,13 +50,14 @@ void CScene::Render(int x, int y, int width, int height, float fValue)
     glViewport(x, y, width, height);
     for (CObject* pObject : m_aObjects)
     {
-        pObject->Render(m_pCamera);
+        pObject->Render(m_pCamera, m_pPointLight);
     }
 }
 
 CScene::CScene(const char* strName)
 {
-
+    m_pCamera = nullptr;
+    m_pPointLight = nullptr;
 }
 
 CScene::~CScene()

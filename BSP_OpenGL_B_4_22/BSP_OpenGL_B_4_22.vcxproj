@@ -149,6 +149,7 @@
     <ClCompile Include="MeshFilter.cpp" />
     <ClCompile Include="MeshRenderer.cpp" />
     <ClCompile Include="Object.cpp" />
+    <ClCompile Include="PointLight.cpp" />
     <ClCompile Include="Program.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Shader.cpp" />
@@ -164,6 +165,7 @@
     <ClInclude Include="glad\khrplatform.h" />
     <ClInclude Include="GLM.h" />
     <ClInclude Include="MeshFilter.h" />
+    <ClInclude Include="PointLight.h" />
     <ClInclude Include="Program.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="Shader.h" />
@@ -175,7 +177,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\media\shaders\fragment_shader.frag" />
+    <None Include="..\media\shaders\fragment_shader_lit.frag" />
     <None Include="..\media\shaders\vertex_shader.vert" />
+    <None Include="..\media\shaders\vertex_shader_lit.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

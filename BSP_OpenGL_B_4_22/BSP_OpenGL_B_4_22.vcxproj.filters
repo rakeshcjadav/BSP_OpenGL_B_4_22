@@ -54,6 +54,9 @@
     <ClCompile Include="Transform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PointLight.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="glad\glad.h">
@@ -95,6 +98,9 @@
     <ClInclude Include="Transform.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="PointLight.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Recording.txt">
@@ -106,6 +112,12 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="..\media\shaders\vertex_shader.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\media\shaders\fragment_shader_lit.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\media\shaders\vertex_shader_lit.vert">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
