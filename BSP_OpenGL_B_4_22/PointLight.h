@@ -1,13 +1,6 @@
 #pragma once
 
-#include"GLM.h"
-
-struct SAttenuationDef
-{
-    float constant;
-    float linear;
-    float quadratic;
-};
+#include"LightDef.h"
 
 class CPointLight
 {

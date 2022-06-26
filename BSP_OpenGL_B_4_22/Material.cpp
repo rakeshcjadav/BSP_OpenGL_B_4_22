@@ -2,6 +2,7 @@
 #include"Program.h"
 #include"Texture.h"
 #include"Camera.h"
+#include"GLFW/glfw3.h"
 
 CMaterial* CMaterial::CreateMaterial(const char* strName, SMaterialProperties& material)
 {
@@ -59,6 +60,11 @@ void CMaterial::Use(CCamera* pCamera)
     m_pProgram->SetUniformColor("uCameraPos", pCamera->GetPosition());
     m_pProgram->SetUniformMatrix("uViewMatrix", matView);
     m_pProgram->SetUniformMatrix("uProjectionMatrix", matProjection);
+
+    float time = (float)glfwGetTime();
+    float sinetime = sin(time);
+    float fasttime = time*10;
+    m_pProgram->SetUniformColor("uTime", glm::vec3(time, sinetime, fasttime));
 
     m_pProgram->SetUniformFloat("uScale", 1.0f);
 

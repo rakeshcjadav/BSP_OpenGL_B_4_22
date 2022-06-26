@@ -3,6 +3,7 @@
 #include"Camera.h"
 #include"Transform.h"
 #include"PointLight.h"
+#include"SpotLight.h"
 
 CObject* CObject::CreateObject(const char* strName)
 {
@@ -39,9 +40,9 @@ CTransform* CObject::GetTransform()
     return m_pTransform;
 }
 
-void CObject::Render(CCamera* pCamera, CPointLight* pPointLight)
+void CObject::Render(CCamera* pCamera, CPointLight* pPointLight, CSpotLight* pSpotLight)
 {
-    m_pMeshRenderer->Render(pCamera, m_pTransform, pPointLight);
+    m_pMeshRenderer->Render(pCamera, m_pTransform, pPointLight, pSpotLight);
 }
 
 CObject::CObject(const char* strName)

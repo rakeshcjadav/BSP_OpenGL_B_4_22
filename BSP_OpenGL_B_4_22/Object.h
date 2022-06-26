@@ -7,6 +7,7 @@ class CMeshRenderer;
 class CCamera;
 class CTransform;
 class CPointLight;
+class CSpotLight;
 
 class CObject
 {
@@ -16,7 +17,7 @@ public:
     void SetMeshRenderer(CMeshRenderer* pMeshFilter);
     void SetTransform(CTransform* pTransform);
     CTransform* GetTransform();
-    void Render(CCamera* pCamera, CPointLight* pPointLight);
+    void Render(CCamera* pCamera, CPointLight* pPointLight, CSpotLight* pSpotLight);
 protected:
     CObject(const char* strName);
     ~CObject();

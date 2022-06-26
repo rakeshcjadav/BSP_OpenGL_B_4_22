@@ -4,6 +4,7 @@
 #include"Camera.h"
 #include"Transform.h"
 #include"PointLight.h"
+#include"SpotLight.h"
 
 CMeshRenderer* CMeshRenderer::Create()
 {
@@ -31,7 +32,7 @@ void CMeshRenderer::SetMaterial(CMaterial* pMaterial)
     m_pMaterial = pMaterial;
 }
 
-void CMeshRenderer::Render(CCamera* pCamera, CTransform* pTransform, CPointLight* pPointLight)
+void CMeshRenderer::Render(CCamera* pCamera, CTransform* pTransform, CPointLight* pPointLight, CSpotLight* pSpotLight)
 {
     m_pMaterial->Use(pCamera);
     m_pMaterial->SetUniformMatrix("uWorldMatrix", pTransform->GetTransformMatrix());
@@ -44,6 +45,19 @@ void CMeshRenderer::Render(CCamera* pCamera, CTransform* pTransform, CPointLight
         m_pMaterial->SetUniformFloat("pointLight.atten.constant", pPointLight->GetAttenuationConstant());
         m_pMaterial->SetUniformFloat("pointLight.atten.linear", pPointLight->GetAttenuationLinear());
         m_pMaterial->SetUniformFloat("pointLight.atten.quadratic", pPointLight->GetAttenuationQuadratic());
+    }
+    if (pSpotLight)
+    {
+        m_pMaterial->SetUniformColor("spotLight.position", pSpotLight->GetPosition());
+        m_pMaterial->SetUniformColor("spotLight.direction", pSpotLight->GetDirection());
+        m_pMaterial->SetUniformColor("spotLight.color", pSpotLight->GetColor());
+        m_pMaterial->SetUniformFloat("spotLight.ambient", pSpotLight->GetAmbientStrength());
+        m_pMaterial->SetUniformFloat("spotLight.cutoffAngle", pSpotLight->GetInnerCutoffAngle());
+        m_pMaterial->SetUniformFloat("spotLight.outercutoffAngle", pSpotLight->GetOuterCutoffAngle());
+
+        m_pMaterial->SetUniformFloat("spotLight.atten.constant", pSpotLight->GetAttenuationConstant());
+        m_pMaterial->SetUniformFloat("spotLight.atten.linear", pSpotLight->GetAttenuationLinear());
+        m_pMaterial->SetUniformFloat("spotLight.atten.quadratic", pSpotLight->GetAttenuationQuadratic());
     }
     m_pMeshFilter->Render();
 }

@@ -8,6 +8,7 @@ class CObject;
 class CCamera;
 class CTransform;
 class CPointLight;
+class CSpotLight;
 
 class CScene
 {
@@ -16,7 +17,8 @@ public:
     void Destroy();
     void AddObject(CObject* pMeshFilter, CTransform* pTransform);
     void RemoveObject(CObject* pMeshFilter);
-    void SetLight(CPointLight* pPointLight);
+    void SetPointLight(CPointLight* pPointLight);
+    void SetSpotLight(CSpotLight* pSpotLight);
     void SetCamera(CCamera* pCamera);
     void Render(int x, int y, int width, int height, float fValue);
 private:
@@ -26,6 +28,7 @@ private:
 private:
     std::list<CObject*> m_aObjects;
     CPointLight* m_pPointLight;
+    CSpotLight* m_pSpotLight;
     CCamera* m_pCamera;
     std::string m_strName;
 };

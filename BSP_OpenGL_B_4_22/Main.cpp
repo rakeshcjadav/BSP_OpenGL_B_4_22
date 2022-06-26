@@ -13,6 +13,7 @@
 #include"Camera.h"
 #include"Transform.h"
 #include"PointLight.h"
+#include"SpotLight.h"
 
 using namespace std;
 
@@ -148,7 +149,7 @@ int main()
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // TODO: Revisit once triangle is drawn
-    
+
     glEnable(GL_CULL_FACE);
     glFrontFace(GL_CCW); // Counter Clockwise
     //glFrontFace(GL_CW); // Clockwise
@@ -161,7 +162,7 @@ int main()
 
     //CAssetManager::Instance().GetProgram("defaultProgram");
 
-    CProgram * pUnlitProgram = CreateProgram("..\\media\\shaders\\vertex_shader.vert", "..\\media\\shaders\\fragment_shader.frag");
+    CProgram* pUnlitProgram = CreateProgram("..\\media\\shaders\\vertex_shader.vert", "..\\media\\shaders\\fragment_shader.frag");
     CProgram* pLitProgram = CreateProgram("..\\media\\shaders\\vertex_shader_lit.vert", "..\\media\\shaders\\fragment_shader_lit.frag");
 
     CMeshFilter* pCubeMeshFilter = CMeshFilter::CreateMesh(SMeshData(SMeshData::MESH_TYPE::CUBE_MESH));
@@ -211,12 +212,12 @@ int main()
         // Ground plane
         CMeshRenderer* pPlaneMeshRenderer = CMeshRenderer::Create();
         pPlaneMeshRenderer->SetMeshFilter(pPlaneMeshFilter);
-        pPlaneMeshRenderer->SetMaterial(pUnlitMaterial);
+        pPlaneMeshRenderer->SetMaterial(pLitMaterialCrate);
         CObject* pPlaneObject = CObject::CreateObject("Plane");
         pPlaneObject->SetMeshRenderer(pPlaneMeshRenderer);
         pScene->AddObject(pPlaneObject, CTransform::CreateTransform(glm::vec3(-5.0f, -2.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 0.0f), glm::vec3(100.0f, 100.0f, 1.0f)));
     }
-    glm::vec3 lightPos(0.0f, 3.0f, 3.0f);
+    glm::vec3 pointlightPos(-10.0f, 3.0f, 3.0f);
     {
         // Light cube
         CMeshRenderer* pMeshRenderer = CMeshRenderer::Create();
@@ -224,15 +225,29 @@ int main()
         pMeshRenderer->SetMaterial(pUnlitMaterial);
         CObject* pLightCubeObject = CObject::CreateObject("LightCube");
         pLightCubeObject->SetMeshRenderer(pMeshRenderer);
-        pScene->AddObject(pLightCubeObject, CTransform::CreateTransform(lightPos, glm::vec3(0.0f), glm::vec3(0.20f)));
+        pScene->AddObject(pLightCubeObject, CTransform::CreateTransform(pointlightPos, glm::vec3(0.0f), glm::vec3(0.20f)));
+    }
+    glm::vec3 spotlightPos(10.0f, 2.0f, 3.0f);
+    {
+        // Light cube
+        CMeshRenderer* pMeshRenderer = CMeshRenderer::Create();
+        pMeshRenderer->SetMeshFilter(pCubeMeshFilter);
+        pMeshRenderer->SetMaterial(pUnlitMaterial);
+        CObject* pLightCubeObject = CObject::CreateObject("LightCube");
+        pLightCubeObject->SetMeshRenderer(pMeshRenderer);
+        pScene->AddObject(pLightCubeObject, CTransform::CreateTransform(spotlightPos, glm::vec3(0.0f), glm::vec3(0.20f)));
     }
 
     g_pCamera = CCamera::CreateCamera(width / (height * 1.0f), 60.0f, 0.1f, 100.0f);
     pScene->SetCamera(g_pCamera);
 
-    SAttenuationDef def = {1.0f, 0.027f, 0.0028f};
-    CPointLight* pPointLight = CPointLight::Create(lightPos, glm::vec3(1.0f, 1.0f, 1.0f), 0.1f, def);
-    pScene->SetLight(pPointLight);
+    SAttenuationDef def = { 1.0f, 0.027f, 0.0028f };
+    CPointLight* pPointLight = CPointLight::Create(pointlightPos, glm::vec3(1.0f, 1.0f, 1.0f), 0.1f, def);
+    pScene->SetPointLight(pPointLight);
+
+    SPointLightDef spotLightDef = { spotlightPos, {0.0f, -1.0f, -1.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 35.0f, 60.0f };
+    CSpotLight* pSpotLight = CSpotLight::Create(spotLightDef, def);
+    pScene->SetSpotLight(pSpotLight);
 
     while (!glfwWindowShouldClose(window))
     {
